@@ -1,0 +1,13 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(135deg, #4F46E5, #7C3AED);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.kart { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px; padding: 32px 24px; text-align: center; max-width: 340px; width: 90%; backdrop-filter: blur(8px); }
+h1 { margin-bottom: 12px; } p { margin-bottom: 16px; opacity: .9; }
+button { background: #fff; color: #4F46E5; border: none; padding: 12px 28px;
+  border-radius: 999px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.ipucu { font-size: 12px; margin-top: 16px; opacity: .7; }
