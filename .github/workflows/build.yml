@@ -1,14 +1,7 @@
-# WebAPK Stüdyo v2 - Build Workflow (otomatik kurulur, elle dokunma)
+# WebAPK Stüdyo v4 - Build Workflow (otomatik kurulur, elle dokunma)
 name: Build APK
 on:
   workflow_dispatch:
-    inputs:
-      app_name:     { description: 'Uygulama adi',  required: false, default: '' }
-      package_name: { description: 'Paket adi',     required: false, default: '' }
-      version_name: { description: 'Versiyon',      required: false, default: '' }
-      theme_color:  { description: 'Tema rengi',    required: false, default: '' }
-      js_enabled:   { description: 'JavaScript',    required: false, default: '' }
-      internet:     { description: 'Internet izni', required: false, default: '' }
   repository_dispatch:
     types: [build-apk]
 
@@ -20,32 +13,24 @@ concurrency:
   group: build-group
   cancel-in-progress: true
 
+env:
+  APP_NAME: ${{ github.event.client_payload.app_name }}
+  PACKAGE_NAME: ${{ github.event.client_payload.package_name }}
+  VERSION_NAME: ${{ github.event.client_payload.version_name }}
+  THEME_COLOR: ${{ github.event.client_payload.theme_color }}
+  JS_ENABLED: ${{ github.event.client_payload.js_enabled }}
+  INTERNET: ${{ github.event.client_payload.internet }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Degiskenleri hazirla
-        id: v
-        run: |
-          APP_NAME="${{ github.event.inputs.app_name || github.event.client_payload.app_name }}"
-          PACKAGE_NAME="${{ github.event.inputs.package_name || github.event.client_payload.package_name }}"
-          VERSION_NAME="${{ github.event.inputs.version_name || github.event.client_payload.version_name }}"
-          THEME_COLOR="${{ github.event.inputs.theme_color || github.event.client_payload.theme_color }}"
-          JS_ENABLED="${{ github.event.inputs.js_enabled || github.event.client_payload.js_enabled }}"
-          INTERNET="${{ github.event.inputs.internet || github.event.client_payload.internet }}"
-          echo "app_name=${APP_NAME:-WebAPK Uygulamasi}" >> "$GITHUB_OUTPUT"
-          echo "package_name=${PACKAGE_NAME:-com.webapk.app}" >> "$GITHUB_OUTPUT"
-          echo "version_name=${VERSION_NAME:-1.0}" >> "$GITHUB_OUTPUT"
-          echo "theme_color=${THEME_COLOR:-#4F46E5}" >> "$GITHUB_OUTPUT"
-          echo "js_enabled=${JS_ENABLED:-true}" >> "$GITHUB_OUTPUT"
-          echo "internet=${INTERNET:-true}" >> "$GITHUB_OUTPUT"
-
       - name: Android sablonunu uret
         run: |
           set -euo pipefail
-          mkdir -p "app" "app/src/main" "app/src/main/assets" "app/src/main/java" "app/src/main/res/values"
+          mkdir -p ".github" "app/src/main/java" "app/src/main/res/values" "app/src/main/assets/app" "app/src/main/assets" "studio"
           echo 'cGx1Z2luTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXMgeyBnb29nbGUoKTsgbWF2ZW5DZW50cmFsKCk7IGdyYWRsZVBsdWdpblBvcnRhbCgpIH0KfQpkZXBlbmRlbmN5UmVzb2x1dGlvbk1hbmFnZW1lbnQgewogICAgcmVwb3NpdG9yaWVzTW9kZS5zZXQoUmVwb3NpdG9yaWVzTW9kZS5GQUlMX09OX1BST0pFQ1RfUkVQT1MpCiAgICByZXBvc2l0b3JpZXMgeyBnb29nbGUoKTsgbWF2ZW5DZW50cmFsKCkgfQp9CnJvb3RQcm9qZWN0Lm5hbWUgPSAiV2ViQXBwIgppbmNsdWRlKCI6YXBwIikK' | base64 -d > settings.gradle
           echo 'cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nIHZlcnNpb24gJzguNS4yJyBhcHBseSBmYWxzZQp9Cg==' | base64 -d > build.gradle
           echo 'b3JnLmdyYWRsZS5qdm1hcmdzPS1YbXgyMDQ4bQphbmRyb2lkLnVzZUFuZHJvaWRYPXRydWUKYW5kcm9pZC5ub25UcmFuc2l0aXZlUkNsYXNzPXRydWUK' | base64 -d > gradle.properties
@@ -56,20 +41,27 @@ jobs:
           echo 'PHJlc291cmNlcz4KICAgIDxjb2xvciBuYW1lPSJ0aGVtZSI+X19USEVNRV9DT0xPUl9fPC9jb2xvcj4KPC9yZXNvdXJjZXM+Cg==' | base64 -d > app/src/main/res/values/colors.xml
           echo 'PHJlc291cmNlcz4KICAgIDxzdHlsZSBuYW1lPSJUaGVtZS5XZWJBcHAiIHBhcmVudD0iYW5kcm9pZDpUaGVtZS5NYXRlcmlhbC5MaWdodC5Ob0FjdGlvbkJhciI+CiAgICAgICAgPGl0ZW0gbmFtZT0iYW5kcm9pZDpzdGF0dXNCYXJDb2xvciI+QGNvbG9yL3RoZW1lPC9pdGVtPgogICAgICAgIDxpdGVtIG5hbWU9ImFuZHJvaWQ6bmF2aWdhdGlvbkJhckNvbG9yIj5AY29sb3IvdGhlbWU8L2l0ZW0+CiAgICAgICAgPGl0ZW0gbmFtZT0iYW5kcm9pZDp3aW5kb3dMaWdodFN0YXR1c0JhciI+ZmFsc2U8L2l0ZW0+CiAgICA8L3N0eWxlPgo8L3Jlc291cmNlcz4K' | base64 -d > app/src/main/res/values/styles.xml
           echo 'PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9InRyIj4KPGhlYWQ+PG1ldGEgY2hhcnNldD0iVVRGLTgiPjxtZXRhIG5hbWU9InZpZXdwb3J0IiBjb250ZW50PSJ3aWR0aD1kZXZpY2Utd2lkdGgsIGluaXRpYWwtc2NhbGU9MS4wIj48dGl0bGU+WcO8a2xlbml5b3I8L3RpdGxlPjwvaGVhZD4KPGJvZHk+CjxzY3JpcHQ+CmlmIChsb2NhdGlvbi5oYXNoID09PSAnI3N0dWRpbycpIGxvY2F0aW9uLnJlcGxhY2UoJ3N0dWRpby9pbmRleC5odG1sJyk7CmVsc2UgbG9jYXRpb24ucmVwbGFjZSgnYXBwL2luZGV4Lmh0bWwnKTsKPC9zY3JpcHQ+CjxwIHN0eWxlPSJmb250LWZhbWlseTpzYW5zLXNlcmlmO3BhZGRpbmc6MjRweDt0ZXh0LWFsaWduOmNlbnRlcjsiPgogIFnDvGtsZW5peW9y4oCmPGJyPjxicj4KICA8YSBocmVmPSJhcHAvaW5kZXguaHRtbCI+VXlndWxhbWF5xLEgQcOnPC9hPiDCtyA8YSBocmVmPSIjc3R1ZGlvIj5TdMO8ZHlvPC9hPgo8L3A+CjwvYm9keT4KPC9odG1sPg==' | base64 -d > app/src/main/assets/index.html
-          PKG="${{ steps.v.outputs.package_name }}"
-          PKG_DIR=$(echo "$PKG" | tr '.' '/')
+          APP_NAME="${APP_NAME:-WebAPK Uygulamasi}"
+          PACKAGE_NAME="${PACKAGE_NAME:-com.webapk.app}"
+          VERSION_NAME="${VERSION_NAME:-1.0}"
+          THEME_COLOR="${THEME_COLOR:-#4F46E5}"
+          JS_ENABLED="${JS_ENABLED:-true}"
+          INTERNET="${INTERNET:-true}"
+          export APP_NAME PACKAGE_NAME VERSION_NAME THEME_COLOR JS_ENABLED INTERNET
+          PKG_DIR=$(echo "$PACKAGE_NAME" | tr '.' '/')
           mkdir -p "app/src/main/java/$PKG_DIR"
           mv app/src/main/java/MainActivity.java "app/src/main/java/$PKG_DIR/MainActivity.java"
-          sed -i "s/__PACKAGE_NAME__/$PKG/g" "app/src/main/java/$PKG_DIR/MainActivity.java" app/build.gradle
-          sed -i "s/__APP_NAME__/${{ steps.v.outputs.app_name }}/g" app/src/main/res/values/strings.xml
-          sed -i "s/__THEME_COLOR__/${{ steps.v.outputs.theme_color }}/g" app/src/main/res/values/colors.xml app/src/main/res/values/styles.xml
-          sed -i "s/__JS_ENABLED__/${{ steps.v.outputs.js_enabled }}/g" "app/src/main/java/$PKG_DIR/MainActivity.java"
-          sed -i "s/__VERSION_NAME__/${{ steps.v.outputs.version_name }}/g" app/build.gradle
-          if [ "${{ steps.v.outputs.internet }}" = "true" ]; then
+          sed -i "s/__PACKAGE_NAME__/$PACKAGE_NAME/g" "app/src/main/java/$PKG_DIR/MainActivity.java" app/build.gradle
+          sed -i "s/__APP_NAME__/$APP_NAME/g" app/src/main/res/values/strings.xml
+          sed -i "s/__THEME_COLOR__/$THEME_COLOR/g" app/src/main/res/values/colors.xml app/src/main/res/values/styles.xml
+          sed -i "s/__JS_ENABLED__/$JS_ENABLED/g" "app/src/main/java/$PKG_DIR/MainActivity.java"
+          sed -i "s/__VERSION_NAME__/$VERSION_NAME/g" app/build.gradle
+          if [ "$INTERNET" = "true" ]; then
             sed -i 's|__INTERNET_PERM__|<uses-permission android:name="android.permission.INTERNET"/>|' app/src/main/AndroidManifest.xml
           else
             sed -i 's|__INTERNET_PERM__|<!-- INTERNET KAPALI -->|' app/src/main/AndroidManifest.xml
           fi
+          echo "DERLEME: $APP_NAME / $PACKAGE_NAME / v$VERSION_NAME"
 
       - name: JDK 17
         uses: actions/setup-java@v4
@@ -81,7 +73,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: SDK bilesenleri
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+        run: yes | sdkmanager --licenses >/dev/null 2>&1 || true; sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Gradle wrapper
         run: |
@@ -97,4 +89,5 @@ jobs:
         run: |
           gh release delete build-latest --cleanup-tag -y || true
           gh release create build-latest app/build/outputs/apk/debug/app-debug.apk \
-            --title "Son APK" --notes "Otomatik derleme - ${{ steps.v.outputs.app_name }}"
+            --title "Son APK" --notes "Otomatik derleme - $APP_NAME"
+            
