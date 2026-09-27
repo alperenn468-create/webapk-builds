@@ -1,0 +1,100 @@
+# WebAPK Stüdyo v2 - Build Workflow (otomatik kurulur, elle dokunma)
+name: Build APK
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:     { description: 'Uygulama adi',  required: false, default: '' }
+      package_name: { description: 'Paket adi',     required: false, default: '' }
+      version_name: { description: 'Versiyon',      required: false, default: '' }
+      theme_color:  { description: 'Tema rengi',    required: false, default: '' }
+      js_enabled:   { description: 'JavaScript',    required: false, default: '' }
+      internet:     { description: 'Internet izni', required: false, default: '' }
+  repository_dispatch:
+    types: [build-apk]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: build-group
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Degiskenleri hazirla
+        id: v
+        run: |
+          APP_NAME="${{ github.event.inputs.app_name || github.event.client_payload.app_name }}"
+          PACKAGE_NAME="${{ github.event.inputs.package_name || github.event.client_payload.package_name }}"
+          VERSION_NAME="${{ github.event.inputs.version_name || github.event.client_payload.version_name }}"
+          THEME_COLOR="${{ github.event.inputs.theme_color || github.event.client_payload.theme_color }}"
+          JS_ENABLED="${{ github.event.inputs.js_enabled || github.event.client_payload.js_enabled }}"
+          INTERNET="${{ github.event.inputs.internet || github.event.client_payload.internet }}"
+          echo "app_name=${APP_NAME:-WebAPK Uygulamasi}" >> "$GITHUB_OUTPUT"
+          echo "package_name=${PACKAGE_NAME:-com.webapk.app}" >> "$GITHUB_OUTPUT"
+          echo "version_name=${VERSION_NAME:-1.0}" >> "$GITHUB_OUTPUT"
+          echo "theme_color=${THEME_COLOR:-#4F46E5}" >> "$GITHUB_OUTPUT"
+          echo "js_enabled=${JS_ENABLED:-true}" >> "$GITHUB_OUTPUT"
+          echo "internet=${INTERNET:-true}" >> "$GITHUB_OUTPUT"
+
+      - name: Android sablonunu uret
+        run: |
+          set -euo pipefail
+          mkdir -p "app" "app/src/main" "app/src/main/assets" "app/src/main/java" "app/src/main/res/values"
+          echo 'cGx1Z2luTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXMgeyBnb29nbGUoKTsgbWF2ZW5DZW50cmFsKCk7IGdyYWRsZVBsdWdpblBvcnRhbCgpIH0KfQpkZXBlbmRlbmN5UmVzb2x1dGlvbk1hbmFnZW1lbnQgewogICAgcmVwb3NpdG9yaWVzTW9kZS5zZXQoUmVwb3NpdG9yaWVzTW9kZS5GQUlMX09OX1BST0pFQ1RfUkVQT1MpCiAgICByZXBvc2l0b3JpZXMgeyBnb29nbGUoKTsgbWF2ZW5DZW50cmFsKCkgfQp9CnJvb3RQcm9qZWN0Lm5hbWUgPSAiV2ViQXBwIgppbmNsdWRlKCI6YXBwIikK' | base64 -d > settings.gradle
+          echo 'cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nIHZlcnNpb24gJzguNS4yJyBhcHBseSBmYWxzZQp9Cg==' | base64 -d > build.gradle
+          echo 'b3JnLmdyYWRsZS5qdm1hcmdzPS1YbXgyMDQ4bQphbmRyb2lkLnVzZUFuZHJvaWRYPXRydWUKYW5kcm9pZC5ub25UcmFuc2l0aXZlUkNsYXNzPXRydWUK' | base64 -d > gradle.properties
+          echo 'cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nCn0KYW5kcm9pZCB7CiAgICBuYW1lc3BhY2UgJ19fUEFDS0FHRV9OQU1FX18nCiAgICBjb21waWxlU2RrIDM0CiAgICBkZWZhdWx0Q29uZmlnIHsKICAgICAgICBhcHBsaWNhdGlvbklkICJfX1BBQ0tBR0VfTkFNRV9fIgogICAgICAgIG1pblNkayAyNAogICAgICAgIHRhcmdldFNkayAzNAogICAgICAgIHZlcnNpb25Db2RlIDEKICAgICAgICB2ZXJzaW9uTmFtZSAiX19WRVJTSU9OX05BTUVfXyIKICAgIH0KICAgIGJ1aWxkVHlwZXMgewogICAgICAgIHJlbGVhc2UgeyBtaW5pZnlFbmFibGVkIGZhbHNlIH0KICAgICAgICBkZWJ1ZyB7fQogICAgfQogICAgY29tcGlsZU9wdGlvbnMgewogICAgICAgIHNvdXJjZUNvbXBhdGliaWxpdHkgSmF2YVZlcnNpb24uVkVSU0lPTl8xNwogICAgICAgIHRhcmdldENvbXBhdGliaWxpdHkgSmF2YVZlcnNpb24uVkVSU0lPTl8xNwogICAgfQogICAgbGludCB7CiAgICAgICAgYWJvcnRPbkVycm9yIGZhbHNlCiAgICAgICAgY2hlY2tSZWxlYXNlQnVpbGRzIGZhbHNlCiAgICB9Cn0K' | base64 -d > app/build.gradle
+          echo 'PG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgICBfX0lOVEVSTkVUX1BFUk1fXwogICAgPGFwcGxpY2F0aW9uCiAgICAgICAgYW5kcm9pZDpsYWJlbD0iQHN0cmluZy9hcHBfbmFtZSIKICAgICAgICBhbmRyb2lkOnRoZW1lPSJAc3R5bGUvVGhlbWUuV2ViQXBwIgogICAgICAgIGFuZHJvaWQ6dXNlc0NsZWFydGV4dFRyYWZmaWM9InRydWUiPgogICAgICAgIDxhY3Rpdml0eQogICAgICAgICAgICBhbmRyb2lkOm5hbWU9Ii5NYWluQWN0aXZpdHkiCiAgICAgICAgICAgIGFuZHJvaWQ6ZXhwb3J0ZWQ9InRydWUiCiAgICAgICAgICAgIGFuZHJvaWQ6Y29uZmlnQ2hhbmdlcz0ib3JpZW50YXRpb258c2NyZWVuU2l6ZXxrZXlib2FyZEhpZGRlbnxzY3JlZW5MYXlvdXR8c21hbGxlc3RTY3JlZW5TaXplIj4KICAgICAgICAgICAgPGludGVudC1maWx0ZXI+CiAgICAgICAgICAgICAgICA8YWN0aW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5pbnRlbnQuYWN0aW9uLk1BSU4iIC8+CiAgICAgICAgICAgICAgICA8Y2F0ZWdvcnkgYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5jYXRlZ29yeS5MQVVOQ0hFUiIgLz4KICAgICAgICAgICAgPC9pbnRlbnQtZmlsdGVyPgogICAgICAgIDwvYWN0aXZpdHk+CiAgICA8L2FwcGxpY2F0aW9uPgo8L21hbmlmZXN0Pgo=' | base64 -d > app/src/main/AndroidManifest.xml
+          echo 'cGFja2FnZSBfX1BBQ0tBR0VfTkFNRV9fOwoKaW1wb3J0IGFuZHJvaWQuYXBwLkFjdGl2aXR5OwppbXBvcnQgYW5kcm9pZC5vcy5CdW5kbGU7CmltcG9ydCBhbmRyb2lkLndlYmtpdC5XZWJTZXR0aW5nczsKaW1wb3J0IGFuZHJvaWQud2Via2l0LldlYlZpZXc7CmltcG9ydCBhbmRyb2lkLndlYmtpdC5XZWJWaWV3Q2xpZW50OwoKcHVibGljIGNsYXNzIE1haW5BY3Rpdml0eSBleHRlbmRzIEFjdGl2aXR5IHsKICAgIHByaXZhdGUgV2ViVmlldyB3ZWJWaWV3OwoKICAgIEBPdmVycmlkZQogICAgcHJvdGVjdGVkIHZvaWQgb25DcmVhdGUoQnVuZGxlIHNhdmVkSW5zdGFuY2VTdGF0ZSkgewogICAgICAgIHN1cGVyLm9uQ3JlYXRlKHNhdmVkSW5zdGFuY2VTdGF0ZSk7CiAgICAgICAgd2ViVmlldyA9IG5ldyBXZWJWaWV3KHRoaXMpOwogICAgICAgIHNldENvbnRlbnRWaWV3KHdlYlZpZXcpOwogICAgICAgIFdlYlNldHRpbmdzIHMgPSB3ZWJWaWV3LmdldFNldHRpbmdzKCk7CiAgICAgICAgcy5zZXRKYXZhU2NyaXB0RW5hYmxlZChfX0pTX0VOQUJMRURfXyk7CiAgICAgICAgcy5zZXRBbGxvd0ZpbGVBY2Nlc3ModHJ1ZSk7CiAgICAgICAgcy5zZXRBbGxvd0NvbnRlbnRBY2Nlc3ModHJ1ZSk7CiAgICAgICAgcy5zZXREb21TdG9yYWdlRW5hYmxlZCh0cnVlKTsKICAgICAgICBzLnNldE1lZGlhUGxheWJhY2tSZXF1aXJlc1VzZXJHZXN0dXJlKGZhbHNlKTsKICAgICAgICB3ZWJWaWV3LnNldFdlYlZpZXdDbGllbnQobmV3IFdlYlZpZXdDbGllbnQoKSk7CiAgICAgICAgd2ViVmlldy5sb2FkVXJsKCJmaWxlOi8vL2FuZHJvaWRfYXNzZXQvaW5kZXguaHRtbCIpOwogICAgfQoKICAgIEBPdmVycmlkZQogICAgcHVibGljIHZvaWQgb25CYWNrUHJlc3NlZCgpIHsKICAgICAgICBpZiAod2ViVmlldyAhPSBudWxsICYmIHdlYlZpZXcuY2FuR29CYWNrKCkpIHsKICAgICAgICAgICAgd2ViVmlldy5nb0JhY2soKTsKICAgICAgICB9IGVsc2UgewogICAgICAgICAgICBzdXBlci5vbkJhY2tQcmVzc2VkKCk7CiAgICAgICAgfQogICAgfQp9Cg==' | base64 -d > app/src/main/java/MainActivity.java
+          echo 'PHJlc291cmNlcz4KICAgIDxzdHJpbmcgbmFtZT0iYXBwX25hbWUiPl9fQVBQX05BTUVfXzwvc3RyaW5nPgo8L3Jlc291cmNlcz4K' | base64 -d > app/src/main/res/values/strings.xml
+          echo 'PHJlc291cmNlcz4KICAgIDxjb2xvciBuYW1lPSJ0aGVtZSI+X19USEVNRV9DT0xPUl9fPC9jb2xvcj4KPC9yZXNvdXJjZXM+Cg==' | base64 -d > app/src/main/res/values/colors.xml
+          echo 'PHJlc291cmNlcz4KICAgIDxzdHlsZSBuYW1lPSJUaGVtZS5XZWJBcHAiIHBhcmVudD0iYW5kcm9pZDpUaGVtZS5NYXRlcmlhbC5MaWdodC5Ob0FjdGlvbkJhciI+CiAgICAgICAgPGl0ZW0gbmFtZT0iYW5kcm9pZDpzdGF0dXNCYXJDb2xvciI+QGNvbG9yL3RoZW1lPC9pdGVtPgogICAgICAgIDxpdGVtIG5hbWU9ImFuZHJvaWQ6bmF2aWdhdGlvbkJhckNvbG9yIj5AY29sb3IvdGhlbWU8L2l0ZW0+CiAgICAgICAgPGl0ZW0gbmFtZT0iYW5kcm9pZDp3aW5kb3dMaWdodFN0YXR1c0JhciI+ZmFsc2U8L2l0ZW0+CiAgICA8L3N0eWxlPgo8L3Jlc291cmNlcz4K' | base64 -d > app/src/main/res/values/styles.xml
+          echo 'PCFET0NUWVBFIGh0bWw+CjxodG1sIGxhbmc9InRyIj4KPGhlYWQ+PG1ldGEgY2hhcnNldD0iVVRGLTgiPjxtZXRhIG5hbWU9InZpZXdwb3J0IiBjb250ZW50PSJ3aWR0aD1kZXZpY2Utd2lkdGgsIGluaXRpYWwtc2NhbGU9MS4wIj48dGl0bGU+WcO8a2xlbml5b3I8L3RpdGxlPjwvaGVhZD4KPGJvZHk+CjxzY3JpcHQ+CmlmIChsb2NhdGlvbi5oYXNoID09PSAnI3N0dWRpbycpIGxvY2F0aW9uLnJlcGxhY2UoJ3N0dWRpby9pbmRleC5odG1sJyk7CmVsc2UgbG9jYXRpb24ucmVwbGFjZSgnYXBwL2luZGV4Lmh0bWwnKTsKPC9zY3JpcHQ+CjxwIHN0eWxlPSJmb250LWZhbWlseTpzYW5zLXNlcmlmO3BhZGRpbmc6MjRweDt0ZXh0LWFsaWduOmNlbnRlcjsiPgogIFnDvGtsZW5peW9y4oCmPGJyPjxicj4KICA8YSBocmVmPSJhcHAvaW5kZXguaHRtbCI+VXlndWxhbWF5xLEgQcOnPC9hPiDCtyA8YSBocmVmPSIjc3R1ZGlvIj5TdMO8ZHlvPC9hPgo8L3A+CjwvYm9keT4KPC9odG1sPg==' | base64 -d > app/src/main/assets/index.html
+          PKG="${{ steps.v.outputs.package_name }}"
+          PKG_DIR=$(echo "$PKG" | tr '.' '/')
+          mkdir -p "app/src/main/java/$PKG_DIR"
+          mv app/src/main/java/MainActivity.java "app/src/main/java/$PKG_DIR/MainActivity.java"
+          sed -i "s/__PACKAGE_NAME__/$PKG/g" "app/src/main/java/$PKG_DIR/MainActivity.java" app/build.gradle
+          sed -i "s/__APP_NAME__/${{ steps.v.outputs.app_name }}/g" app/src/main/res/values/strings.xml
+          sed -i "s/__THEME_COLOR__/${{ steps.v.outputs.theme_color }}/g" app/src/main/res/values/colors.xml app/src/main/res/values/styles.xml
+          sed -i "s/__JS_ENABLED__/${{ steps.v.outputs.js_enabled }}/g" "app/src/main/java/$PKG_DIR/MainActivity.java"
+          sed -i "s/__VERSION_NAME__/${{ steps.v.outputs.version_name }}/g" app/build.gradle
+          if [ "${{ steps.v.outputs.internet }}" = "true" ]; then
+            sed -i 's|__INTERNET_PERM__|<uses-permission android:name="android.permission.INTERNET"/>|' app/src/main/AndroidManifest.xml
+          else
+            sed -i 's|__INTERNET_PERM__|<!-- INTERNET KAPALI -->|' app/src/main/AndroidManifest.xml
+          fi
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: SDK bilesenleri
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Gradle wrapper
+        run: |
+          which gradle || (sudo apt-get update && sudo apt-get install -y gradle)
+          gradle wrapper --gradle-version 8.9
+
+      - name: APK derle
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: APK'yi Release'e yukle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete build-latest --cleanup-tag -y || true
+          gh release create build-latest app/build/outputs/apk/debug/app-debug.apk \
+            --title "Son APK" --notes "Otomatik derleme - ${{ steps.v.outputs.app_name }}"
