@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NOX — Senin gecen. Senin sesin.</title>
+<style>
+:root{
+  --bg:#0A0A0C; --surface:#141418; --raised:#1C1C22; --border:#26262B;
+  --txt:#F4F4F5; --txt2:#A1A1AA; --txt3:#8E8E93;
+  --red:#E5484D; --red-dark:#7F1D1D; --red-dim:#B91C1C;
+  --glow:rgba(229,72,77,.35); --amb:rgba(229,72,77,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:#000;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--txt);overflow:hidden}
+#app{height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;position:relative;
+  background:radial-gradient(120% 55% at 50% -10%,var(--amb) 0%,transparent 60%),var(--bg)}
+
+/* ===== SPLASH ===== */
+#splash{position:fixed;inset:0;background:radial-gradient(60% 40% at 50% 40%,var(--amb),transparent 70%),#000;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .5s ease,transform .5s ease}
+#splash.gone{opacity:0;transform:translateY(-30px);pointer-events:none}
+.moon{width:76px;height:76px;color:var(--red);filter:drop-shadow(0 0 22px var(--glow));animation:moonIn .9s cubic-bezier(.2,1.4,.4,1)}
+@keyframes moonIn{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.splash-name{font-size:32px;font-weight:800;letter-spacing:9px;animation:spread 1s ease both .3s}
+@keyframes spread{from{letter-spacing:22px;opacity:0}to{letter-spacing:9px;opacity:1}}
+.splash-tag{font-size:13px;color:var(--txt3);animation:fadeIn .6s ease both .9s}
+.splash-by{font-size:10px;letter-spacing:3px;color:var(--red);text-transform:uppercase;animation:fadeIn .6s ease both 1.2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ===== TOP BAR ===== */
+.topbar{padding:14px 18px 8px;display:flex;align-items:center;gap:10px;flex:none}
+.brand{display:flex;flex-direction:column;gap:1px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:4px;font-size:20px}
+.logo svg{color:var(--red);filter:drop-shadow(0 0 8px var(--glow))}
+.by{font-size:9px;letter-spacing:2.5px;color:var(--txt3);text-transform:uppercase;padding-left:30px}
+.by b{color:var(--red);font-weight:600}
+.clock{margin-left:auto;text-align:right;line-height:1.25}
+.clock .time{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.clock .date{font-size:10px;color:var(--txt3);letter-spacing:.4px}
+
+/* ===== VIEWS ===== */
+.view{flex:1;overflow-y:auto;padding:4px 18px 14px;display:none;scrollbar-width:none}
+.view::-webkit-scrollbar{display:none}
+.view.on{display:block}
+h2{font-size:21px;font-weight:600;margin:10px 0 12px}
+.c1{font-size:12px;color:var(--txt2);margin:14px 0 8px;letter-spacing:.6px;text-transform:uppercase;font-weight:600}
+.c1:first-child{margin-top:6px}
+
+/* ===== COVER ===== */
+.cover{width:46px;height:46px;border-radius:8px;flex:none;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2c2c31,#1a1a1e);color:var(--red);font-weight:800;font-size:17px;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.cover .ltr{position:relative;z-index:0;text-shadow:0 0 12px var(--glow)}
+.cover.artless img{display:none}
+
+/* ===== TRACK ROW ===== */
+.trow{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:12px;cursor:pointer;transition:background .15s,transform .12s;position:relative}
+.trow:active{background:#1d1d22;transform:scale(.985)}
+.trow.playing .tt{color:var(--red)}
+.trow.playing .cover{box-shadow:0 0 16px var(--glow)}
+.meta{flex:1;min-width:0}
+.tt{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ta{font-size:12px;color:var(--txt3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{font-size:9px;color:var(--red);border:1px solid rgba(229,72,77,.5);border-radius:4px;padding:2px 6px;letter-spacing:1px;font-weight:700;flex:none}
+.heart{background:none;border:none;color:var(--txt3);cursor:pointer;padding:4px;display:flex;transition:transform .15s;flex:none}
+.heart.on{color:var(--red)}
+.heart.burst{animation:burst .4s ease}
+@keyframes burst{30%{transform:scale(1.6)}}
+.eq{display:flex;gap:2px;align-items:flex-end;height:14px;width:15px;flex:none}
+.eq i{width:3px;background:var(--red);border-radius:1px;animation:eqb .9s ease-in-out infinite;box-shadow:0 0 6px var(--glow)}
+.eq i:nth-child(2){animation-delay:.25s}.eq i:nth-child(3){animation-delay:.5s}
+@keyframes eqb{0%,100%{height:4px}50%{height:14px}}
+
+/* ===== HERO / CARDS ===== */
+.hero{border-radius:16px;padding:16px;margin:8px 0 14px;background:linear-gradient(120deg,var(--amb),rgba(127,29,29,.10) 60%,transparent);border:1px solid rgba(229,72,77,.28);box-shadow:0 8px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.05)}
+.hero .big{font-size:18px;font-weight:700}
+.hero .small{font-size:12px;color:var(--txt2);margin-top:4px}
+.hero .playall{margin-top:12px;display:inline-flex;align-items:center;gap:7px;background:var(--red);color:#fff;border:none;border-radius:999px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 18px var(--glow);transition:.15s}
+.hero .playall:active{transform:scale(.95)}
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 14px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.card{flex:none;width:138px;cursor:pointer;transition:transform .15s}
+.card:active{transform:scale(.96)}
+.card .cover{width:138px;height:138px;border-radius:14px;font-size:42px}
+.card .tt{margin-top:9px;font-size:13px}
+
+html.noanim *,html.noanim *::before,html.noanim *::after{animation:none!important;transition:none!important}
+
+/* yama: uzun basışta metin seçme menüsünü engelle */
+.trow,.gcard,.card,.big-add,.mini,.import-card,.nv,.fp-art,.hero{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+
+/* ana ekran liste çipleri */
+.hchips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.hchip{border:1px solid var(--border);background:var(--surface);color:var(--txt2);border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;transition:.18s;letter-spacing:.3px}
+.hchip.on{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+
+/* ===== SEARCH ===== */
+.q{width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--txt);padding:13px 16px;font-size:14px;outline:none;transition:border .2s,box-shadow .2s}
+.q:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(229,72,77,.15),0 4px 20px rgba(0,0,0,.4)}
+
+/* ===== IMPORT / CARDS ===== */
+.import-card{display:flex;align-items:center;gap:14px;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:.15s;background:linear-gradient(180deg,#16161b,#121216);box-shadow:0 3px 14px rgba(0,0,0,.35)}
+.import-card:active{border-color:var(--red);transform:scale(.985)}
+.import-card .ico{width:42px;height:42px;border-radius:11px;background:var(--amb);display:flex;align-items:center;justify-content:center;color:var(--red);flex:none;font-size:17px;box-shadow:inset 0 0 12px var(--amb)}
+.import-card .arrow{margin-left:auto;color:var(--txt3);flex:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big-add{border:1.5px dashed rgba(229,72,77,.45);border-radius:14px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--red);cursor:pointer;font-size:13px;background:var(--amb);min-height:104px;justify-content:center;transition:.15s}
+.big-add:active{background:rgba(229,72,77,.14);transform:scale(.97)}
+.big-add b{font-size:24px;font-weight:300}
+
+/* group card */
+.gcard{display:flex;align-items:center;gap:13px;border:1px solid var(--border);border-radius:14px;padding:13px 14px;margin-bottom:10px;cursor:pointer;background:linear-gradient(180deg,#16161b,#121216);box-shadow:0 3px 14px rgba(0,0,0,.35);transition:.15s}
+.gcard:active{transform:scale(.98);border-color:var(--red)}
+.gcard .dot{width:42px;height:42px;border-radius:11px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.4)}
+.gcard .sys{font-size:9px;color:var(--red);letter-spacing:1px;font-weight:700}
+
+/* ===== MINI PLAYER ===== */
+.mini{margin:0 12px 8px;background:linear-gradient(180deg,#1e1e24,#17171c);border:1px solid #2c2c33;border-radius:16px;display:flex;align-items:center;gap:11px;padding:9px 13px;cursor:pointer;flex:none;box-shadow:0 8px 26px rgba(0,0,0,.5),0 0 20px var(--amb)}
+.mini .cover{width:38px;height:38px;font-size:15px}
+.mini .tt{font-size:13px}
+.mbtn{margin-left:auto;background:none;border:none;color:var(--txt);cursor:pointer;display:flex;padding:5px;flex:none}
+
+/* ===== NAV ===== */
+.nav{display:flex;border-top:1px solid #1f1f23;background:#0c0c0f;padding:6px 4px calc(10px + env(safe-area-inset-bottom));flex:none;box-shadow:0 -6px 24px rgba(0,0,0,.5)}
+.nv{flex:1;background:none;border:none;color:var(--txt3);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;cursor:pointer;padding:5px 0;transition:.15s}
+.nv:active{transform:scale(.9)}
+.nv.on{color:var(--txt)}
+.nv.on svg{color:var(--red);filter:drop-shadow(0 0 6px var(--glow))}
+
+/* ===== FULL PLAYER ===== */
+.fp{position:fixed;inset:0;background:radial-gradient(90% 45% at 50% 0%,var(--amb),transparent 60%),linear-gradient(180deg,#130608 0%,#0A0A0C 55%);display:none;flex-direction:column;padding:18px;z-index:100;max-width:560px;margin:0 auto}
+.fp.on{display:flex;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(50px);opacity:0}to{transform:none;opacity:1}}
+.fp-top{display:flex;align-items:center;justify-content:space-between}
+.fp-close{background:none;border:none;color:var(--txt3);cursor:pointer;display:flex;padding:5px;transition:.15s}
+.fp-close:active{transform:scale(.85);color:var(--red)}
+.fp-head{font-size:10px;letter-spacing:2.5px;color:var(--txt3);text-transform:uppercase}
+.fp-art{width:min(64vw,270px);height:min(64vw,270px);border-radius:20px;margin:20px auto 10px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;font-size:62px;font-weight:800;color:var(--red);background:linear-gradient(135deg,#1e1e24,#141418);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 50px var(--amb);touch-action:pan-y;user-select:none}
+.fp-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;z-index:1}
+.fp-art .ltr{text-shadow:0 0 24px var(--glow);pointer-events:none}
+.fp-swipe-hint{text-align:center;font-size:10px;color:var(--txt3);letter-spacing:1px}
+.fp-title{text-align:center;font-size:20px;font-weight:700;padding:0 20px;margin-top:6px}
+.fp-artist{text-align:center;font-size:14px;color:var(--txt3);margin-top:4px}
+.fp-engine{align-self:center;margin-top:12px;background:var(--amb);border:1px solid rgba(229,72,77,.4);color:var(--red);border-radius:999px;padding:7px 18px;font-size:12px;cursor:pointer;letter-spacing:.5px;transition:.15s;box-shadow:0 0 16px var(--amb)}
+.fp-engine:active{transform:scale(.95)}
+.fp-bar{height:5px;background:var(--border);border-radius:999px;margin:24px 4px 7px;cursor:pointer;position:relative}
+.fp-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--red-dim),var(--red));border-radius:999px;position:relative;box-shadow:0 0 10px var(--glow)}
+.fp-fill::after{content:'';position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 0 10px var(--glow)}
+.fp-time{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);padding:0 4px;font-variant-numeric:tabular-nums}
+.fp-ctrl{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:20px}
+.fpb{background:none;border:none;color:var(--txt);cursor:pointer;display:flex;padding:7px;transition:.15s}
+.fpb:active{transform:scale(.82)}
+.fpb.play{width:66px;height:66px;border-radius:50%;background:linear-gradient(145deg,#ef5350,var(--red-dark));color:#fff;align-items:center;justify-content:center;box-shadow:0 8px 28px var(--glow);flex:none;transition:.15s}
+.fpb.play:active{transform:scale(.92)}
+.fpb.tog{color:var(--txt3);position:relative;transition:.15s}
+.fpb.tog.on{color:var(--red);filter:drop-shadow(0 0 6px var(--glow))}
+.rep1{position:absolute;top:0;right:0;font-size:9px;background:var(--red);color:#fff;border-radius:50%;width:13px;height:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.fp-sub{display:flex;justify-content:center;gap:36px;margin-top:20px}
+.fp-sub button{background:none;border:none;color:var(--txt3);cursor:pointer;display:flex;padding:5px;transition:.15s}
+.fp-sub button:active{transform:scale(.8)}
+.fp-sub button.on{color:var(--red)}
+
+/* ===== SHEETS ===== */
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:150;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(3px)}
+.sheet.on{display:flex}
+.sheet-body{width:100%;max-width:560px;background:linear-gradient(180deg,#1e1e24,#17171c);border-radius:22px 22px 0 0;padding:20px 20px calc(26px + env(safe-area-inset-bottom));animation:slideUp .25s ease;border-top:1px solid #2e2e35;box-shadow:0 -10px 40px rgba(0,0,0,.6)}
+.sheet-body h3{font-size:16px;margin-bottom:4px}
+.grab{width:40px;height:4px;border-radius:99px;background:#33333a;margin:0 auto 14px}
+.slider-row{margin:16px 0}
+.slider-row label{display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);margin-bottom:8px}
+input[type=range]{width:100%;accent-color:var(--red);height:20px;cursor:pointer}
+.preset-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.preset{border:1px solid var(--border);background:var(--surface);color:var(--txt2);border-radius:999px;padding:8px 15px;font-size:12px;cursor:pointer;transition:.15s}
+.preset:active{transform:scale(.93)}
+.preset.on{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 3px 12px var(--glow)}
+.sheet-actions{display:flex;flex-direction:column;gap:8px}
+.sact{border:1px solid var(--border);background:var(--surface);color:var(--txt);border-radius:12px;padding:14px;font-size:14px;cursor:pointer;text-align:center;transition:.15s}
+.sact:active{transform:scale(.98)}
+.sact.danger{color:var(--red);border-color:rgba(229,72,77,.4)}
+.sfield{width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--txt);padding:12px 14px;font-size:14px;outline:none;margin-bottom:8px}
+.sfield:focus{border-color:var(--red)}
+.sbtn{width:100%;background:var(--red);color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px var(--glow);transition:.15s}
+.sbtn:active{transform:scale(.97)}
+
+/* theme swatches */
+.swatches{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+.sw{width:46px;height:46px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s;position:relative;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.sw.on{border-color:#fff;transform:scale(1.12)}
+.sw span{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--txt3);white-space:nowrap}
+
+.stat{display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);padding:10px 2px;border-bottom:1px solid #1d1d22}
+.stat b{color:var(--txt);font-variant-numeric:tabular-nums}
+
+.toast{position:fixed;bottom:112px;left:50%;transform:translateX(-50%);background:var(--raised);border:1px solid var(--border);color:var(--txt);padding:10px 20px;border-radius:999px;font-size:13px;z-index:400;display:none;max-width:86vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+.toast.on{display:block;animation:fadeIn .2s ease}
+.backbtn{display:flex;align-items:center;gap:8px;background:none;border:none;color:var(--txt);font-size:15px;font-weight:600;cursor:pointer;padding:8px 0;margin-bottom:4px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="splash" onclick="skipSplash()">
+    <svg class="moon" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+    <div class="splash-name">NOX</div>
+    <div class="splash-tag">Senin gecen. Senin sesin.</div>
+    <div class="splash-by">by Alperen</div>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>NOX</div>
+      <div class="by">by <b>Alperen</b></div>
+    </div>
+    <div class="clock"><div class="time" id="clk-time">--:--</div><div class="date" id="clk-date">—</div></div>
+  </div>
+
+  <!-- KEŞFET (sadece müzik) -->
+  <div class="view on" id="v-explore">
+    <div class="hero">
+      <div class="big">Ruhun Yankısı</div>
+      <div class="small">Bazı duygular kelimelerle anlatılamaz, sadece bir nota ile hissedilir. İçindeki gürültüyü kapat ve sadece ritmin rehberliğine güven.</div>
+      <button class="playall" id="hero-play">▶ Hepsini çal</button>
+    </div>
+    <div class="hchips" id="home-chips"></div>
+    <div class="c1" id="home-c1">Tüm parçalar</div>
+    <div id="explore-list"></div>
+  </div>
+
+  <!-- ARA -->
+  <div class="view" id="v-search">
+    <div style="height:8px"></div>
+    <input class="q" id="q" placeholder="Müzik ara...">
+    <div style="height:14px"></div>
+    <div id="search-list"></div>
+  </div>
+
+  <!-- KÜTÜPHANE -->
+  <div class="view" id="v-lib">
+    <h2>Kütüphane</h2>
+
+    <div class="c1">Gruplarım — kendi zevkini tasarla</div>
+    <div class="grid2">
+      <div class="big-add" id="new-group"><b>+</b>Yeni grup</div>
+      <div class="big-add" id="add-files"><b>⇪</b>Dosya ekle<small style="font-size:10px;color:var(--txt3);letter-spacing:.3px">seçicide basılı tut → çoklu seç</small></div>
+    </div>
+    <input type="file" id="file-in" accept="audio/*" multiple style="display:none">
+    <div id="groups" style="margin-top:10px"></div>
+
+    <div class="c1">Link ile ekle — telifsiz akışlar</div>
+    <div class="import-card" id="add-link">
+      <div class="ico">＋</div>
+      <div><div class="tt">Bağlantı ekle</div><div class="ta">.mp3 · .aac · .ogg · .m3u8 akış URL'si</div></div>
+      <div class="arrow">›</div>
+    </div>
+    <div id="downloads"></div>
+
+    <div class="c1">Bu cihazdan eklenenler</div>
+    <div id="local-list"></div>
+  </div>
+
+  <!-- GRUP DETAY -->
+  <div class="view" id="v-group">
+    <button class="backbtn" id="group-back"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.4 5.4a1 1 0 0 1 0 1.4L10.2 12l5.2 5.2a1 1 0 0 1-1.4 1.4l-6-6a1 1 0 0 1 0-1.4l6-6a1 1 0 0 1 1.4 0z"/></svg><span id="group-title">Grup</span></button>
+    <div class="c1" id="group-sub">Parçalar</div>
+    <div id="group-items"></div>
+    <button class="sbtn" id="group-add" style="margin-top:10px">+ Parça ekle</button>
+  </div>
+
+  <!-- BEĞENİLENLER -->
+  <div class="view" id="v-likes">
+    <h2>Beğenilenler</h2>
+    <div class="c1">Kalıcıdır · silmek için basılı tut</div>
+    <div id="likes-list"></div>
+  </div>
+
+  <!-- AYARLAR -->
+  <div class="view" id="v-settings">
+    <h2>Ayarlar</h2>
+    <div class="c1">Tema — müzik evrenin</div>
+    <div class="import-card"><div class="ico">◐</div>
+      <div style="flex:1"><div class="tt">Tema seç</div>
+        <div class="swatches" id="swatches"></div>
+        <div style="height:18px"></div>
+      </div>
+    </div>
+    <div class="c1">Ses</div>
+    <div class="import-card" onclick="openEngine()"><div class="ico">≋</div><div style="flex:1"><div class="tt">NOX Sound Engine</div><div class="ta">Ekolayzır, bas, tiz, sahne</div></div><div class="arrow">›</div></div>
+    <div class="import-card" id="cf-card"><div class="ico">⇄</div><div style="flex:1"><div class="tt">Crossfade</div><div class="ta" id="cf-val">3 sn geçiş</div></div><div class="arrow">›</div></div>
+    <div class="import-card" id="ap-card"><div class="ico">▶</div><div style="flex:1"><div class="tt">Otomatik oynatma</div><div class="ta" id="ap-val">Açık — seçince hemen çalar</div></div><div class="arrow">›</div></div>
+
+    <div class="c1">Depolama</div>
+    <div class="import-card"><div class="ico">▣</div>
+      <div style="flex:1">
+        <div class="stat"><span>Beğenilenler</span><b id="st-likes">0</b></div>
+        <div class="stat"><span>İndirilen bağlantılar</span><b id="st-dl">0</b></div>
+        <div class="stat" style="border:none"><span>Gruplar</span><b id="st-gr">0</b></div>
+        <button class="sbtn" id="clear-cache" style="margin-top:10px;background:var(--surface);border:1px solid var(--border);box-shadow:none;color:var(--txt)">Önbelleği temizle</button>
+      </div>
+    </div>
+
+    <div class="c1">Yedekleme</div>
+    <div class="import-card" id="bk-card"><div class="ico">⇩</div><div style="flex:1"><div class="tt">Verileri yedekle</div><div class="ta">Beğeniler, gruplar, bağlantılar, tema, motor ayarları</div></div><div class="arrow">›</div></div>
+    <div class="import-card" id="rs-card"><div class="ico">⇧</div><div style="flex:1"><div class="tt">Verileri geri yükle</div><div class="ta">nox-yedek.json dosyasından</div></div><div class="arrow">›</div></div>
+    <input type="file" id="rs-in" accept="application/json,.json" style="display:none">
+
+    <div class="c1">Deneyim</div>
+    <div class="import-card" id="anim-card"><div class="ico">✦</div><div style="flex:1"><div class="tt">Animasyonlar</div><div class="ta" id="anim-val">Açık</div></div><div class="arrow">›</div></div>
+    <div class="import-card" id="dim-card"><div class="ico">☾</div><div style="flex:1"><div class="tt">Gece loşluğu</div><div class="ta" id="dim-val">23:00–07:00 arası ekranı kısar</div></div><div class="arrow">›</div></div>
+    <div class="import-card" id="wipe-card"><div class="ico">⌫</div><div style="flex:1"><div class="tt">Tüm verileri sıfırla</div><div class="ta" id="wipe-val">Beğeniler, gruplar, dosyalar — geri dönüş yok</div></div><div class="arrow">›</div></div>
+
+    <div class="c1">Kaynaklar</div>
+    <div class="import-card"><div class="ico">✦</div><div style="flex:1"><div class="tt">NOX</div><div class="ta">Senin gecen. Senin sesin.<br>by Alperen · v1.0</div></div></div>
+  </div>
+
+  <!-- MINI PLAYER -->
+  <div class="mini" id="mini">
+    <div class="cover artless" id="m-cover"><span class="ltr">N</span></div>
+    <div class="meta"><div class="tt" id="m-title">Bir şey seç</div><div class="ta" id="m-artist">çalmak için parçaya dokun</div></div>
+    <button class="mbtn" id="m-play"></button>
+  </div>
+
+  <!-- NAV -->
+  <div class="nav" id="nav">
+    <button class="nv on" data-v="explore"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18V6l10-2v11.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg>Keşfet</button>
+    <button class="nv" data-v="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 3a8.5 8.5 0 1 1-5.1 15.3L2.4 21.3a1 1 0 0 1-1.4-1.4l3.9-3.9A8.5 8.5 0 0 1 11.5 3zm0 1.8a6.7 6.7 0 1 0 0 13.4 6.7 6.7 0 0 0 0-13.4z"/></svg>Ara</button>
+    <button class="nv" data-v="lib"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.1 6a.9.9 0 0 1 .9-.9h14a.9.9 0 0 1 0 1.8H5a.9.9 0 0 1-.9-.9zm0 6a.9.9 0 0 1 .9-.9h14a.9.9 0 0 1 0 1.8H5a.9.9 0 0 1-.9-.9zm0 6a.9.9 0 0 1 .9-.9h14a.9.9 0 0 1 0 1.8H5a.9.9 0 0 1-.9-.9z"/></svg>Kütüphane</button>
+    <button class="nv" data-v="likes"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 2.2c1 0 2.2.8 2.9 2 .6 1.1.6 2.5.3 3.9h3c2.3 0 4.3 2 3.6 4.4l-1.9 6.1c-.5 1.5-2 2.5-3.6 2.5H8.9c-1.6 0-2.8-1.3-2.8-2.8V9.6c0-.9.6-1.5 1.2-1.8.6-.3 1.1-.8 1.4-1.6.2-.5.2-.9.3-1.4 0-.1.1-.2.1-.3.1-.5.2-1.1.7-1.7.4-.5.9-.7 1.3-.8.3-.1.7-.1.9-.1z"/></svg>Beğenilen</button>
+    <button class="nv" data-v="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm9 3.5c0-.6-.1-1.2-.2-1.8l2-1.5-2-3.4-2.3 1a8 8 0 0 0-3.1-1.8L15 2h-4l-.4 2.5a8 8 0 0 0-3.1 1.8l-2.3-1-2 3.4 2 1.5a8.2 8.2 0 0 0 0 3.6l-2 1.5 2 3.4 2.3-1a8 8 0 0 0 3.1 1.8L11 22h4l.4-2.5a8 8 0 0 0 3.1-1.8l2.3 1 2-3.4-2-1.5c.1-.6.2-1.2.2-1.8z"/></svg>Ayarlar</button>
+  </div>
+
+  <!-- FULL PLAYER -->
+  <div class="fp" id="fp">
+    <div class="fp-top">
+      <button class="fp-close" id="fp-x"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6.4 6.4a1 1 0 0 1 1.4 0L12 10.6l4.2-4.2a1 1 0 0 1 1.4 1.4L13.4 12l4.2 4.2a1 1 0 0 1-1.4 1.4L12 13.4l-4.2 4.2a1 1 0 0 1-1.4-1.4L10.6 12 6.4 7.8a1 1 0 0 1 0-1.4z"/></svg></button>
+      <div class="fp-head">Şimdi çalıyor</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="fp-art artless" id="f-cover"><span class="ltr">N</span></div>
+    <div class="fp-swipe-hint" id="swipe-hint">‹ KAYDIR: SAR / SONRAKİ ›</div>
+    <div class="fp-title" id="f-title">—</div>
+    <div class="fp-artist" id="f-artist">—</div>
+    <button class="fp-engine" onclick="openEngine()">NOX Sound Engine</button>
+    <div class="fp-bar" id="f-bar"><div class="fp-fill" id="f-fill"></div></div>
+    <div class="fp-time"><span id="f-cur">0:00</span><span id="f-dur">0:00</span></div>
+    <div class="fp-ctrl">
+      <button class="fpb tog" id="f-shuf"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h4l8 10h4M4 17h4l2-2.5M14 9.5 16 7h4M20 4l-3 3 3 3M20 14l-3 3 3 3"/></svg></button>
+      <button class="fpb" id="f-prev"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5.5v13a.8.8 0 0 1-1.6 0v-13A.8.8 0 0 1 6 5.5zm12.5.6c.6-.5 1.5 0 1.5.9v10c0 .9-.9 1.4-1.5.9L10 13.2a1 1 0 0 1 0-1.7l8.5-5.4z"/></svg></button>
+      <button class="fpb play" id="f-play"></button>
+      <button class="fpb" id="f-next"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M18 5.5v13a.8.8 0 0 0 1.6 0v-13A.8.8 0 0 0 18 5.5zM5.5 6.1c-.6-.5-1.5 0-1.5.9v10c0 .9.9 1.4 1.5.9L14 13.2a1 1 0 0 1 0-1.7L5.5 6.1z"/></svg></button>
+      <button class="fpb tog" id="f-rep"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8V6.8C4 5.8 4.8 5 5.8 5H19M19 5l-2.5 2.5L19 10M20 16v1.2c0 1-.8 1.8-1.8 1.8H5M5 20l2.5-2.5L5 15"/></svg><span class="rep1" id="rep1" style="display:none">1</span></button>
+    </div>
+    <div class="fp-sub">
+      <button onclick="toast('Sıra: '+queue.length+' parça')"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.1 6a.9.9 0 0 1 .9-.9h14a.9.9 0 0 1 0 1.8H5a.9.9 0 0 1-.9-.9zm0 6a.9.9 0 0 1 .9-.9h14a.9.9 0 0 1 0 1.8H5a.9.9 0 0 1-.9-.9zm0 6a.9.9 0 0 1 .9-.9h14a.9.9 0 0 1 0 1.8H5a.9.9 0 0 1-.9-.9z"/></svg></button>
+      <button id="f-like"><svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 2.2c1 0 2.2.8 2.9 2 .6 1.1.6 2.5.3 3.9h3c2.3 0 4.3 2 3.6 4.4l-1.9 6.1c-.5 1.5-2 2.5-3.6 2.5H8.9c-1.6 0-2.8-1.3-2.8-2.8V9.6c0-.9.6-1.5 1.2-1.8.6-.3 1.1-.8 1.4-1.6.2-.5.2-.9.3-1.4 0-.1.1-.2.1-.3.1-.5.2-1.1.7-1.7.4-.5.9-.7 1.3-.8.3-.1.7-.1.9-.1z"/></svg></button>
+      <button onclick="toast('Kuyruğa eklendi')" id="f-addq"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 0 1 0 2h-5v5a1 1 0 0 1-2 0v-5H6a1 1 0 0 1 0-2h5V6a1 1 0 0 1 1-1z"/></svg></button>
+      <button id="f-share" title="Paylaş"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 4.5 20 11a1.4 1.4 0 0 1 0 2l-6.5 6.5a1.4 1.4 0 0 1-2-2l4.1-4.1H7a2.5 2.5 0 0 1 0-5h8.6l-4.1-4.1a1.4 1.4 0 0 1 2-2z"/></svg></button>
+    </div>
+  </div>
+
+  <!-- SOUND ENGINE -->
+  <div class="sheet" id="engine" onclick="if(event.target===this)closeSheet('engine')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>NOX Sound Engine</h3>
+      <div class="c1" style="margin:6px 0 0;text-transform:none;letter-spacing:0;font-weight:400">Gerçek zamanlı DSP · cihaz dosyalarında aktif, akışlarda devre dışı</div>
+      <div class="slider-row"><label>Bass <span id="bass-v">0</span></label><input type="range" id="bass" min="-10" max="10" value="0" oninput="document.getElementById('bass-v').textContent=this.value"></div>
+      <div class="slider-row"><label>Tiz <span id="treble-v">0</span></label><input type="range" id="treble" min="-10" max="10" value="0" oninput="document.getElementById('treble-v').textContent=this.value"></div>
+      <div class="slider-row"><label>Ses sahnesi</label>
+        <div class="preset-row" id="stage-row"><button class="preset on">Kapalı</button><button class="preset">Geniş Sahne</button><button class="preset">Oda</button><button class="preset">Konser</button></div>
+      </div>
+      <div class="slider-row"><label>Ekolayzır profili</label>
+        <div class="preset-row" id="eq-row"><button class="preset on">Düz</button><button class="preset">Gece</button><button class="preset">Bas</button><button class="preset">Vokal</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LINK EKLE -->
+  <div class="sheet" id="link-sheet" onclick="if(event.target===this)closeSheet('link-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>Bağlantı ekle</h3>
+      <div style="height:10px"></div>
+      <input class="sfield" id="lnk-name" placeholder="İsim (ör. Gece Lo-Fi)">
+      <input class="sfield" id="lnk-url" placeholder="Akış URL'si (https://... .mp3 / .aac / .m3u8)">
+      <button class="sbtn" id="lnk-save">Ekle</button>
+    </div>
+  </div>
+
+  <!-- İSİM & LOGO DÜZENLE -->
+  <div class="sheet" id="edit-sheet" onclick="if(event.target===this)closeSheet('edit-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>Parçayı düzenle</h3>
+      <div class="c1" style="margin-top:8px">İsim ve logoyu kendin belirle — kalıcı olarak hafızaya alınır</div>
+      <input class="sfield" id="ed-name" placeholder="Parça adı">
+      <input class="sfield" id="ed-artist" placeholder="Sanatçı / kaynak">
+      <input type="file" id="ed-logo" accept="image/*" style="display:none">
+      <button class="sbtn" id="ed-pick-logo" style="background:var(--surface);border:1px solid var(--border);box-shadow:none;color:var(--txt);margin-bottom:8px">Kapak / logo seç</button>
+      <button class="sbtn" id="ed-save">Kaydet</button>
+    </div>
+  </div>
+
+  <!-- CROSSFADE -->
+  <div class="sheet" id="cf-sheet" onclick="if(event.target===this)closeSheet('cf-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>Crossfade</h3>
+      <div class="c1" style="margin-top:10px">Parça geçişinde yumuşak bağlantı süresi</div>
+      <div class="preset-row" id="cf-row">
+        <button class="preset" data-s="0">Kapalı</button>
+        <button class="preset" data-s="3">3 sn</button>
+        <button class="preset" data-s="6">6 sn</button>
+        <button class="preset" data-s="12">12 sn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUP İSMİ -->
+  <div class="sheet" id="group-sheet" onclick="if(event.target===this)closeSheet('group-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>Yeni grup</h3>
+      <div style="height:10px"></div>
+      <input class="sfield" id="g-name" placeholder="Grubunun adı ne olsun?" style="font-size:15px">
+      <button class="sbtn" id="g-save">Oluştur</button>
+      <button class="sact" style="margin-top:8px" onclick="closeSheet('group-sheet')">Vazgeç</button>
+    </div>
+  </div>
+
+  <!-- YEDEKLE -->
+  <div class="sheet" id="bk-sheet" onclick="if(event.target===this)closeSheet('bk-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>Verileri yedekle</h3>
+      <div style="height:12px"></div>
+      <button class="sbtn" id="bk-meta">Ayarlar yedeği (hafif)</button>
+      <button class="sbtn" id="bk-full" style="margin-top:8px;background:var(--surface);border:1px solid var(--border);box-shadow:none;color:var(--txt)">Tam yedek — müziklerle birlikte (büyük olabilir)</button>
+      <button class="sact" style="margin-top:8px" onclick="closeSheet('bk-sheet')">Vazgeç</button>
+    </div>
+  </div>
+
+  <!-- BASILI TUT MENÜSÜ -->
+  <div class="sheet" id="lp-sheet" onclick="if(event.target===this)closeSheet('lp-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <div class="sheet-actions">
+        <button class="sact" id="lp-edit" style="display:none">İsim &amp; logo düzenle</button>
+        <button class="sact danger" id="lp-del">Kalıcı olarak sil</button>
+        <button class="sact" onclick="closeSheet('lp-sheet')">Vazgeç</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARÇA EKLE (grup) -->
+  <div class="sheet" id="pick-sheet" onclick="if(event.target===this)closeSheet('pick-sheet')">
+    <div class="sheet-body">
+      <div class="grab"></div>
+      <h3>Parça ekle</h3>
+      <div style="height:10px"></div>
+      <div id="pick-list" style="max-height:50vh;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+<div id="dim" style="position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.2s;z-index:600"></div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+/* ================================================================
+   NOX v1.1 — by Alperen
+   · Ana içerik: kullanıcının müziği (bağlantı + dosya)
+   · Ekstra özellik: "Radyo" grubu — 31 Türk radyosu (canlı)
+   · Hiçbir dış API yok — her şey cihazda
+   ================================================================ */
+const RADIOS=[{"n":"TRT Radyo 1","u":"https://trt.radyotvonline.net/trt1","l":"https://i.imgur.com/e5YIAol.png"},{"n":"TRT FM","u":"https://trt.radyotvonline.net/trtfm","l":"https://i.imgur.com/0xWHMxb.png"},{"n":"TRT Nağme","u":"https://rd-trtnagme.medya.trt.com.tr/master.m3u8","l":"https://i.imgur.com/JnXou78.png"},{"n":"TRT Türkü","u":"https://rd-trtturku.medya.trt.com.tr/master_128.m3u8","l":"https://i.imgur.com/2qVdSd5.png"},{"n":"TRT Radyo 3","u":"https://rd-trtradyo3.medya.trt.com.tr/master.m3u8","l":"https://i.imgur.com/alGv0Yu.png"},{"n":"Süper FM","u":"https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_ITUNES.mp3","l":"https://i.imgur.com/oXNGZr9.png"},{"n":"Alem FM","u":"https://turkmedya.radyotvonline.net/alemfmaac","l":"https://i.imgur.com/2o42zoh.png"},{"n":"Best FM","u":"https://officialbestfm.radyotvonline.net/bestfmofficial","l":"https://i.imgur.com/d3ZBvr7.png"},{"n":"Show Radyo","u":"https://showradyo.radyotvonline.net/;","l":"https://i.imgur.com/UOYhceA.png"},{"n":"Joy Türk","u":"https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK128AAC.aac","l":"https://i.imgur.com/rdByHWf.png"},{"n":"Pal FM","u":"https://moondigitaledge.radyotvonline.net/palfm/playlist.m3u8","l":"https://i.imgur.com/yQMdQyj.png"},{"n":"Radyo Alaturka","u":"https://yayin.jumboserver.net:9100/stream","l":"https://i.imgur.com/M85RMbN.png"},{"n":"Pal Nostalji","u":"https://moondigitaledge.radyotvonline.net/palnostalji/playlist.m3u8","l":"https://i.imgur.com/eatOgOe.png"},{"n":"Radyo 45'lik","u":"https://stream.radyo45lik.com:4545/stream","l":"https://i.imgur.com/6skdHcs.png"},{"n":"Power FM","u":"https://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio","l":"https://i.imgur.com/7VSGvfn.png"},{"n":"Power Smooth Jazz","u":"https://listen.powerapp.com.tr/powersmoothjazz/mpeg/icecast.audio","l":"https://i.imgur.com/qLZDJ7f.png"},{"n":"Power Love","u":"https://listen.powerapp.com.tr/powerlove/mpeg/icecast.audio","l":"https://i.imgur.com/2Y5A5Cy.png"},{"n":"Power XL","u":"https://listen.powerapp.com.tr/powerextralounge/mpeg/icecast.audio","l":"https://i.imgur.com/MV3rWqo.png"},{"n":"Power Gold","u":"https://live.powerapp.com.tr/powergold/abr/playlist.m3u8","l":"https://i.imgur.com/wkV8cKV.png"},{"n":"Power Plus","u":"https://listen.powerapp.com.tr/powerplus/abr/playlist.m3u8","l":"https://i.imgur.com/tEoHQRv.png"},{"n":"Power Pop","u":"https://listen.powerapp.com.tr/powerpop/128/chunks.m3u8","l":"https://i.imgur.com/cZIWtE1.png"},{"n":"Joy FM","u":"https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_FM_ITUNES.mp3","l":"https://i.imgur.com/F5nhknn.gif"},{"n":"Pal Station","u":"https://moondigitaledge.radyotvonline.net/palstation/playlist.m3u8","l":"https://i.imgur.com/hhtP2gb.png"},{"n":"Metro FM","u":"https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM_ITUNES.mp3","l":"https://i.imgur.com/D7Mv6Rr.png"},{"n":"Radio Fenomen","u":"https://live.radyofenomen.com/fenomen/abr/playlist.m3u8","l":"https://i.imgur.com/NiugeFJ.png"},{"n":"Radyo Eksen","u":"https://dygedge.radyotvonline.net/radyoeksen/playlist.m3u8","l":"https://i.imgur.com/Qdo1BMn.png"},{"n":"Radio FG","u":"https://edge1.radyotvonline.net/shoutcast/play/fg","l":"https://i.imgur.com/3ivyYdi.gif"},{"n":"Radio Voyage","u":"https://ssldyg.radyotvonline.com/pozitif/smil:voyage.smil/playlist.m3u8","l":"https://i.imgur.com/4sGqEU3.png"},{"n":"dinamo FM","u":"http://channels.dinamo.fm/legacy-mp3","l":"https://i.imgur.com/60vSaVe.png"},{"n":"dinamo FM - Sleep","u":"https://channels.dinamo.fm/sleep-aac","l":"https://i.imgur.com/60vSaVe.png"},{"n":"dinamo FM - Cafe","u":"https://channels.dinamo.fm/caffe-aac","l":"https://i.imgur.com/60vSaVe.png"}];
+
+const store={
+  get(k,d){try{const v=localStorage.getItem('nox_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('nox_'+k,JSON.stringify(v))}catch(e){}}
+};
+let likes=new Set(store.get('likes',[]));
+let downloads=store.get('dl',[]);
+let groups=store.get('groups',[]);
+let crossfade=store.get('cf',3);
+let autoplay=store.get('ap',true);
+let localFiles=[];
+let queue=[],qi=0,shuf=false,rep=0;
+let curGroup=null,lpTarget=null;
+let META=store.get('meta',{});          // {trackId:{title,artist,art(dataURL)}}
+let editTarget=null,pendingResume=0;
+
+/* Dosyaları cihazda kalıcı sakla (IndexedDB — kapat-açta müzikler gitmez) */
+const idb={
+  open(){return new Promise((res,rej)=>{try{
+    const r=indexedDB.open('nox_db',1);
+    r.onupgradeneeded=()=>{try{r.result.createObjectStore('files',{keyPath:'id'})}catch(e){}};
+    r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);
+  }catch(e){rej(e)}})},
+  async put(rec){const db=await this.open();return new Promise((res,rej)=>{
+    try{const tx=db.transaction('files','readwrite');tx.objectStore('files').put(rec);
+    tx.oncomplete=res;tx.onerror=()=>rej(tx.error)}catch(e){rej(e)}})},
+  async all(){const db=await this.open();return new Promise((res,rej)=>{
+    try{const rq=db.transaction('files','readonly').objectStore('files').getAll();
+    rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error)}catch(e){rej(e)}})},
+  async del(id){const db=await this.open();return new Promise((res,rej)=>{
+    try{const tx=db.transaction('files','readwrite');tx.objectStore('files').delete(id);
+    tx.oncomplete=res;tx.onerror=()=>rej(tx.error)}catch(e){rej(e)}})},
+  async clear(){const db=await this.open();return new Promise((res,rej)=>{
+    try{const tx=db.transaction('files','readwrite');tx.objectStore('files').clear();
+    tx.oncomplete=res;tx.onerror=()=>rej(tx.error)}catch(e){rej(e)}})}
+};
+
+function applyMeta(tr){
+  const m=META[tr.id];if(!m)return tr;
+  return Object.assign({},tr,{title:m.title||tr.title,artist:m.artist||tr.artist,art:m.art!==undefined?m.art:tr.art});
+}
+
+const $=id=>document.getElementById(id);
+const audio=$('audio');
+/* İki kanal: akışlar (radyo/link) düz öğede; cihaz dosyaları EQ'lu grafikte */
+const audio2=document.createElement('audio');audio2.preload='metadata';
+audio2.style.display='none';document.body.appendChild(audio2);
+let AE=audio;                 // aktif ses öğesi
+let AC=null,GEQ=null;         // AudioContext + grafik düğümleri
+
+const fmt=s=>{if(!isFinite(s)||s<=0)return"0:00";return Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0")};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PALETTE=["#E5484D","#9F1239","#B45309","#0F766E","#6D28D9","#1D4ED8","#BE185D"];
+
+/* ---------- MÜZİK EVRENİ TEMALARI ---------- */
+const THEMES={
+ "Gece Kulübü":      {c:"#E5484D",dark:"#7F1D1D",dim:"#B91C1C",amb:"rgba(229,72,77,.10)"},
+ "Rock Sahnesi":     {c:"#DC2626",dark:"#7F1D1D",dim:"#991B1B",amb:"rgba(220,38,38,.10)"},
+ "Caz Kulübü":       {c:"#D97706",dark:"#7C2D12",dim:"#B45309",amb:"rgba(217,119,6,.10)"},
+ "Elektronik Gece":  {c:"#A855F7",dark:"#4C1D95",dim:"#7E22CE",amb:"rgba(168,85,247,.12)"},
+ "Midnight Jazz":    {c:"#3B82F6",dark:"#1E3A8A",dim:"#2563EB",amb:"rgba(59,130,246,.10)"}
+};
+function applyTheme(name){
+ const t=THEMES[name]||THEMES["Gece Kulübü"];
+ const r=document.documentElement.style;
+ r.setProperty('--red',t.c);r.setProperty('--red-dark',t.dark);
+ r.setProperty('--red-dim',t.dim);r.setProperty('--glow',t.c+'59');
+ r.setProperty('--amb',t.amb);
+ store.set('theme',name);
+ const sw=$('swatches');if(sw)sw.querySelectorAll('.sw').forEach(s=>s.classList.toggle('on',s.dataset.t===name));
+}
+(function(){
+ const el=$('swatches');
+ Object.keys(THEMES).forEach(name=>{
+  const d=document.createElement('div');d.className='sw';d.dataset.t=name;
+  d.style.background='linear-gradient(145deg,'+THEMES[name].c+','+THEMES[name].dark+')';
+  d.innerHTML='<span>'+name+'</span>';
+  d.onclick=()=>{applyTheme(name);toast('Tema: '+name)};
+  el.appendChild(d)});
+ applyTheme(store.get('theme','Gece Kulübü'));
+})();
+
+/* ---------- SAAT / TARİH ---------- */
+function tick(){
+  const d=new Date();
+  $('clk-time').textContent=d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+  $('clk-date').textContent=d.toLocaleDateString('tr-TR',{day:'numeric',month:'short',weekday:'short'});
+}
+tick();setInterval(tick,1000);
+
+/* ---------- PARÇA LİSTELERİ (müzik ve radyo ayrı) ---------- */
+function musicTracks(){
+  const dl=downloads.map(d=>({id:d.id,title:d.title,artist:'Bağlantım',art:null,url:d.url,src:'dl',live:false}));
+  const lc=localFiles.map(f=>({id:f.id,title:f.title,artist:'Yerli dosya',art:null,url:f.url,src:'local',live:false}));
+  return [...dl,...lc].map(applyMeta);
+}
+function radioTracks(){
+  return RADIOS.map((r,i)=>({id:'r'+i,title:r.n,artist:'Radyo · Canlı',art:r.l||null,url:r.u,src:'radio',live:true})).map(applyMeta);
+}
+function byId(id){
+  return musicTracks().find(t=>t.id===id)||radioTracks().find(t=>t.id===id);
+}
+
+/* Radyo grubunu ilk kurulumda otomatik oluştur (kullanıcı isterse siler) */
+(function(){
+  if(store.get('radio_init',false))return;
+  groups.unshift({id:'g_radio',name:'Radyo',color:'#B91C1C',items:radioTracks().map(t=>t.id),sys:true});
+  store.set('groups',groups);store.set('radio_init',true);
+})();
+
+/* ---------- RENDER ---------- */
+function coverHTML(tr,cls){const l=(tr.title||'N')[0].toUpperCase();
+ return '<div class="cover '+(cls||'')+(tr.art?'':' artless')+'">'+(tr.art?'<img src="'+tr.art+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add(\'artless\')">':'')+'<span class="ltr">'+l+'</span></div>'}
+function rowHTML(tr){
+ const liked=likes.has(tr.id);
+ return '<div class="trow'+(isCurrent(tr)?' playing':'')+'" data-id="'+tr.id+'">'+coverHTML(tr)+
+ '<div class="meta"><div class="tt">'+esc(tr.title)+'</div><div class="ta">'+esc(tr.artist)+'</div></div>'+
+ (isCurrent(tr)?'<div class="eq"><i></i><i></i><i></i></div>':'')+
+ (tr.live?'<div class="live">CANLI</div>':'')+
+ '<button class="heart'+(liked?' on':'')+'" data-like="'+tr.id+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11.8 2.2c1 0 2.2.8 2.9 2 .6 1.1.6 2.5.3 3.9h3c2.3 0 4.3 2 3.6 4.4l-1.9 6.1c-.5 1.5-2 2.5-3.6 2.5H8.9c-1.6 0-2.8-1.3-2.8-2.8V9.6c0-.9.6-1.5 1.2-1.8.6-.3 1.1-.8 1.4-1.6.2-.5.2-.9.3-1.4 0-.1.1-.2.1-.3.1-.5.2-1.1.7-1.7.4-.5.9-.7 1.3-.8.3-.1.7-.1.9-.1z"/></svg></button></div>'}
+function isCurrent(tr){return queue[qi]&&queue[qi].id===tr.id&&!AE.paused}
+function bindRows(el,list){
+ el.innerHTML='';
+ if(!list.length){el.innerHTML='';return}
+ list.forEach(tr=>{const d=document.createElement('div');d.innerHTML=rowHTML(tr);
+  d.firstElementChild.onclick=()=>playQueue(list,list.indexOf(tr));
+  el.appendChild(d.firstElementChild)});
+}
+function homeList(){
+  const hl=store.get('home_list','all');
+  if(hl==='all')return {name:'Tüm parçalar',list:musicTracks()};
+  const g=groups.find(x=>x.id===hl);
+  if(!g)return {name:'Tüm parçalar',list:musicTracks()};
+  return {name:g.name,list:g.items.map(byId).filter(Boolean)};
+}
+function renderHomeChips(){
+  const el=$('home-chips');el.innerHTML='';
+  const hl=store.get('home_list','all');
+  const mk=(id,label)=>{const c=document.createElement('button');c.className='hchip'+(hl===id?' on':'');c.textContent=label;
+   c.onclick=()=>{store.set('home_list',id);renderHomeChips();renderExplore()};el.appendChild(c)};
+  mk('all','Tüm Parçalar');
+  groups.forEach(g=>mk(g.id,g.name));
+}
+function renderExplore(){
+ const el=$('explore-list');el.innerHTML='';
+ const home=homeList();
+ $('home-c1').textContent=home.name;
+ if(!home.list.length)return;
+ bindRows(el,home.list);
+}
+function renderLikes(){
+ const arr=[...likes].map(byId).filter(Boolean);
+ const el=$('likes-list');el.innerHTML='';
+ if(!arr.length){el.innerHTML='<div class="c1" style="text-transform:none;letter-spacing:0;font-weight:400">Henüz beğenin yok — kalbe dokun, kalıcı olarak burada biriksin.</div>';return}
+ bindRows(el,arr);
+}
+function renderDownloads(){
+ const el=$('downloads');el.innerHTML='';
+ if(!downloads.length){el.innerHTML='<div class="c1" style="text-transform:none;letter-spacing:0;font-weight:400">Bağlantı ekle — telifsiz akışların kalıcı olarak burada durur.</div>';return}
+ bindRows(el,downloads.map(d=>byId(d.id)).filter(Boolean));
+}
+function renderLocal(){
+ const el=$('local-list');el.innerHTML='';
+ if(!localFiles.length){el.innerHTML='<div class="c1" style="text-transform:none;letter-spacing:0;font-weight:400">Bu oturum için eklenen dosyalar.</div>';return}
+ bindRows(el,localFiles);
+}
+function renderGroups(){
+ const el=$('groups');el.innerHTML='';
+ groups.forEach(g=>{
+  const c=document.createElement('div');c.className='gcard';
+  c.innerHTML='<div class="dot" style="background:'+g.color+'">'+esc(g.name[0].toUpperCase())+'</div>'+
+   '<div class="meta"><div class="tt">'+esc(g.name)+(g.sys?' <span class="sys">· SİSTEM</span>':'')+'</div><div class="ta">'+g.items.length+' parça · basılı tut: sil</div></div>';
+  c.onclick=()=>openGroup(g);
+  attachLP(c,()=>openLP({type:'group',id:g.id}));
+  el.appendChild(c)});
+ updateStats();
+}
+function updateStats(){
+ $('st-likes').textContent=likes.size;
+ $('st-dl').textContent=downloads.length;
+ $('st-gr').textContent=groups.length;
+}
+function refreshAll(){renderHomeChips();renderExplore();renderLikes();renderDownloads();renderLocal();renderGroups();doSearch()}
+
+/* ---------- ARA (sadece müzik) ---------- */
+let sTimer=null;
+$('q').addEventListener('input',()=>{clearTimeout(sTimer);sTimer=setTimeout(doSearch,200)});
+function doSearch(){
+ const q=$('q').value.trim().toLowerCase();
+ const el=$('search-list');
+ if(!q){el.innerHTML='';return}
+ bindRows(el,musicTracks().filter(t=>t.title.toLowerCase().includes(q)||t.artist.toLowerCase().includes(q)));
+}
+
+/* ---------- GRUPLAR ---------- */
+$('new-group').onclick=()=>{$('g-name').value='';openSheet('group-sheet');setTimeout(()=>{try{$('g-name').focus()}catch(e){}},350)};
+$('g-save').onclick=()=>{
+  const name=$('g-name').value.trim();
+  if(!name){toast('Bir isim gir');return}
+  const g={id:'g'+Date.now(),name,color:PALETTE[groups.length%PALETTE.length],items:[]};
+  groups.push(g);store.set('groups',groups);renderGroups();renderHomeChips();
+  closeSheet('group-sheet');toast('"'+g.name+'" oluşturuldu');
+};
+function openGroup(g){
+ curGroup=g;switchTab('group');
+ $('group-title').textContent=g.name;
+ $('group-sub').textContent=g.sys?'Türk radyoları · canlı yayın':'Parçalar';
+ $('group-add').style.display=g.sys?'none':'block';
+ renderGroupItems();
+}
+$('group-back').onclick=()=>{switchTab('lib')};
+function renderGroupItems(){
+ const el=$('group-items');el.innerHTML='';
+ if(!curGroup.items.length){el.innerHTML='<div class="c1" style="text-transform:none;letter-spacing:0;font-weight:400">Grup boş — parça ekle.</div>';return}
+ const list=curGroup.items.map(byId).filter(Boolean);
+ bindRows(el,list);
+ el.querySelectorAll('.trow').forEach((row,i)=>{
+  attachLP(row,()=>openLP({type:'gitem',idx:i,id:row.dataset.id}))});
+}
+$('group-add').onclick=()=>{
+ const el=$('pick-list');el.innerHTML='';
+ musicTracks().filter(t=>!curGroup.items.includes(t.id)).forEach(tr=>{
+  const d=document.createElement('div');d.innerHTML=rowHTML(tr);
+  const row=d.firstElementChild;
+  const plus=document.createElement('button');plus.className='heart';plus.style.color='var(--red)';
+  plus.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5a1 1 0 0 1 1 1v5h5a1 1 0 0 1 0 2h-5v5a1 1 0 0 1-2 0v-5H6a1 1 0 0 1 0-2h5V6a1 1 0 0 1 1-1z"/></svg>';
+  row.appendChild(plus);
+  plus.onclick=()=>{curGroup.items.push(tr.id);store.set('groups',groups);renderGroupItems();plus.remove();toast('Eklendi: '+tr.title)};
+  el.appendChild(row)});
+ openSheet('pick-sheet');
+};
+
+/* ---------- BASILI TUT (kalıcı silme) ---------- */
+function attachLP(el,fn){
+  let t=null;
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+  const start=e=>{t=setTimeout(()=>{t=null;try{navigator.vibrate&&navigator.vibrate(30)}catch(_){};fn()},550)};
+  const end=()=>{if(t){clearTimeout(t);t=null}};
+  el.addEventListener('touchstart',start,{passive:true});
+  el.addEventListener('touchend',end);el.addEventListener('touchmove',end);
+  el.addEventListener('mousedown',start);el.addEventListener('mouseup',end);el.addEventListener('mouseleave',end);
+}
+function openLP(target){
+  lpTarget=target;
+  const editable=target.id&&byId(target.id)&&target.type!=='group';
+  $('lp-edit').style.display=editable?'block':'none';
+  openSheet('lp-sheet');
+}
+$('lp-edit').onclick=()=>{
+  const tr=byId(lpTarget.id);if(!tr)return;
+  editTarget=tr.id;
+  $('ed-name').value=META[tr.id]&&META[tr.id].title?META[tr.id].title:tr.title;
+  $('ed-artist').value=META[tr.id]&&META[tr.id].artist?META[tr.id].artist:(tr.artist||'');
+  closeSheet('lp-sheet');
+  openSheet('edit-sheet');
+};
+$('ed-pick-logo').onclick=()=>$('ed-logo').click();
+$('ed-logo').onchange=e=>{
+  const f=e.target.files[0];if(!f||!editTarget)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');const s=Math.min(1,300/Math.max(img.width,img.height));
+      c.width=img.width*s;c.height=img.height*s;
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      META[editTarget]=META[editTarget]||{};
+      META[editTarget].art=c.toDataURL('image/jpeg',.82);
+      store.set('meta',META);toast('Logo kaydedildi — Kaydet ile onayla');
+    };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(f);e.target.value='';
+};
+$('ed-save').onclick=()=>{
+  if(!editTarget)return;
+  META[editTarget]=META[editTarget]||{};
+  META[editTarget].title=$('ed-name').value.trim()||META[editTarget].title;
+  META[editTarget].artist=$('ed-artist').value.trim()||META[editTarget].artist;
+  store.set('meta',META);closeSheet('edit-sheet');
+  toast('Kaydedildi — hafızada');refreshAll();if(queue[qi]&&queue[qi].id===editTarget)syncPlayer();
+};
+$('lp-del').onclick=()=>{
+  const t=lpTarget;if(!t)return;
+  if(t.type==='like'){likes.delete(t.id);store.set('likes',[...likes])}
+  else if(t.type==='dl'){downloads=downloads.filter(d=>d.id!==t.id);store.set('dl',downloads)}
+  else if(t.type==='group'){groups=groups.filter(g=>g.id!==t.id);store.set('groups',groups)}
+  else if(t.type==='gitem'){curGroup.items.splice(t.idx,1);store.set('groups',groups)}
+  else if(t.type==='local'){
+    localFiles=localFiles.filter(x=>x.id!==t.id);
+    groups.forEach(g=>{g.items=g.items.filter(i=>i!==t.id)});store.set('groups',groups);
+    idb.del(t.id).catch(()=>{});
+  }
+  closeSheet('lp-sheet');toast('Kalıcı olarak silindi');refreshAll();
+  if(t.type==='gitem')renderGroupItems();
+};
+document.querySelectorAll('#local-list').forEach(listEl=>{
+  new MutationObserver(()=>{
+    listEl.querySelectorAll('.trow').forEach(row=>{
+      attachLP(row,()=>openLP({type:'local',id:row.dataset.id}));
+    });
+  }).observe(listEl,{childList:true});
+});
+document.querySelectorAll('#likes-list,#downloads').forEach(listEl=>{
+  new MutationObserver(()=>{
+    listEl.querySelectorAll('.trow').forEach(row=>{
+      const id=row.dataset.id;
+      if(listEl.id==='likes-list')attachLP(row,()=>openLP({type:'like',id}));
+      else attachLP(row,()=>openLP({type:'dl',id}));
+    });
+  }).observe(listEl,{childList:true});
+});
+
+/* ---------- BAĞLANTI EKLE ---------- */
+$('add-link').onclick=()=>openSheet('link-sheet');
+$('lnk-save').onclick=()=>{
+  const name=$('lnk-name').value.trim(),url=$('lnk-url').value.trim();
+  if(!url||!/^https?:\/\/.+\..+/.test(url)){toast('Geçerli bir URL gir');return}
+  const d={id:'d'+Date.now(),title:name||url.split('/').pop().slice(0,40)||'Bağlantı',url};
+  downloads.push(d);store.set('dl',downloads);
+  $('lnk-name').value='';$('lnk-url').value='';closeSheet('link-sheet');
+  toast('"'+d.title+'" kalıcı olarak eklendi');refreshAll();
+};
+
+/* ---------- YEREL DOSYA ---------- */
+$('add-files').onclick=()=>$('file-in').click();
+$('file-in').onchange=e=>{
+ [...e.target.files].forEach(f=>{
+  const id='f_'+f.name.replace(/[^\w\u00C0-\u017F]+/g,'_')+'_'+f.size;
+  const url=URL.createObjectURL(f);
+  localFiles.push({id,title:f.name.replace(/\.[^.]+$/,''),artist:'Yerli dosya',url});
+  idb.put({id,name:f.name,file:f}).catch(()=>{});
+ });
+ renderLocal();toast(e.target.files.length+' dosya kalıcı olarak eklendi');e.target.value='';
+};
+
+/* ---------- OYNATMA ---------- */
+function playQueue(list,i){
+ queue=list;qi=i;const tr=queue[qi];if(!tr)return;
+ startStream(tr,autoplay);
+ syncPlayer();refreshAll();
+}
+function startStream(tr,play){
+ const el=(tr.src==='local')?audio2:audio;
+ if(el!==AE){try{AE.pause()}catch(e){}AE=el;}
+ if(tr.src==='local')ensureGraph();
+ const cf=crossfade;
+ const swap=()=>{AE.src=tr.url;if(play)AE.play().catch(()=>toast('Oynatma engellendi'))};
+ if(cf>0&&!AE.paused){
+   const steps=10,iv=cf*100/steps;let n=0;
+   const f=setInterval(()=>{n++;AE.volume=Math.max(0,1-n/steps);
+     if(n>=steps){clearInterval(f);AE.volume=1;swap();fadeIn(cf)}},iv);
+ } else {AE.volume=1;swap();}
+}
+function fadeIn(cf){
+ const steps=10,iv=cf*100/steps;let n=0;
+ const f=setInterval(()=>{n++;AE.volume=Math.min(1,n/steps);if(n>=steps){clearInterval(f);AE.volume=1}},iv);
+}
+function syncPlayer(){
+ const tr=queue[qi];if(!tr)return;
+ setCover($('m-cover'),tr);setCover($('f-cover'),tr);
+ $('m-title').textContent=tr.title;$('m-artist').textContent=tr.artist;
+ $('f-title').textContent=tr.title;$('f-artist').textContent=tr.artist;
+ $('f-dur').textContent=tr.live?'CANLI':'0:00';
+ $('f-like').classList.toggle('on',likes.has(tr.id));
+ $('swipe-hint').textContent='‹ KAYDIR: SONRAKİ / ÖNCEKİ PARÇA ›';
+ updateMediaSession(tr);
+ setTimeout(()=>pushMediaPos(true),300);
+}
+function setCover(el,tr){const l=(tr.title||'N')[0].toUpperCase();
+ el.className=el.className.replace(/\s*artless/g,'')+(tr.art?'':' artless');
+ el.innerHTML=(tr.art?'<img src="'+tr.art+'" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add(\'artless\')">':'')+'<span class="ltr">'+l+'</span>'}
+
+const ICON_PAUSE='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="3.4" height="14" rx="1"/><rect x="13.6" y="5" width="3.4" height="14" rx="1"/></svg>';
+const ICON_PLAY='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7.8 4.2a1 1 0 0 1 1.5-.9l10.4 6.1a1 1 0 0 1 0 1.7L9.3 17.4a1 1 0 0 1-1.5-.9V4.2z"/></svg>';
+function updPlayIcon(){const ic=AE.paused?ICON_PLAY:ICON_PAUSE;$('m-play').innerHTML=ic;$('f-play').innerHTML=ic}
+/* Pozisyon + oynatma durumunu hem tarayıcıya hem AppMint köprüsüne bas */
+let lastPosPush=0;
+function pushMediaPos(force){
+  try{
+    const now=Date.now();if(!force&&now-lastPosPush<2000)return;lastPosPush=now;
+    const tr=queue[qi];if(!tr)return;
+    let dur=AE.duration;
+    if(!dur||!isFinite(dur)){try{dur=AE.seekable&&AE.seekable.length?AE.seekable.end(AE.seekable.length-1):0}catch(e){}}
+    if(!dur||!isFinite(dur))dur=tr.dur||0;
+    /* AppMint ilk aldığı sürede kalıyor: 0 gitmesin, metadata bekle */
+    if(!tr.live&&!dur)return;
+    const pos=AE.currentTime||0, playing=!AE.paused;
+    if('mediaSession' in navigator){
+      try{navigator.mediaSession.playbackState=playing?'playing':'paused'}catch(e){}
+      if(dur&&isFinite(dur))try{navigator.mediaSession.setPositionState({duration:dur,playbackRate:AE.playbackRate||1,position:Math.min(pos,dur)})}catch(e){}
+    }
+    /* AppMint köprüsü: yalnızca HTTPS kapak kabul eder (kılavuz kuralı) */
+    const artHttp=(tr.art&&tr.art.indexOf('https:')===0)?tr.art:'';
+    const posMs=Math.round(pos*1000),durMs=Math.round(dur*1000);
+    [window.WebToApk,window.AppMint].forEach(obj=>{
+      if(!obj)return;
+      try{if(typeof obj.setMediaMetadata==='function')obj.setMediaMetadata(tr.title,tr.artist,artHttp,durMs)}catch(e){}
+      try{if(typeof obj.setPlaybackState==='function')obj.setPlaybackState(playing,posMs,durMs)}catch(e){}
+    });
+  }catch(e){}
+}
+function onAE(ev,fn){audio.addEventListener(ev,fn);audio2.addEventListener(ev,fn)}
+onAE('play',e=>{if(e.target!==AE)return;updPlayIcon();refreshAll();pushMediaPos(true)});
+onAE('pause',e=>{if(e.target!==AE)return;saveLast();updPlayIcon();refreshAll();pushMediaPos(true)});
+onAE('timeupdate',e=>{
+ if(e.target!==AE)return;
+ $('f-cur').textContent=fmt(AE.currentTime);
+ const tr=queue[qi];
+ if(tr&&!tr.live&&AE.duration&&isFinite(AE.duration)){
+   $('f-fill').style.width=(AE.currentTime/AE.duration*100)+'%';
+   $('f-dur').textContent=fmt(AE.duration);
+ }
+ pushMediaPos(false);});
+onAE('error',e=>{if(e.target!==AE)return;if(queue.length)toast('Akış şu an ulaşılamıyor')});
+onAE('loadedmetadata',e=>{
+ if(e.target!==AE)return;
+ if(AE.duration&&isFinite(AE.duration)){
+   $('f-dur').textContent=fmt(AE.duration);
+   if(queue[qi])queue[qi].dur=AE.duration;
+   pushMediaPos(true);
+ }
+ if(pendingResume&&AE.duration){try{AE.currentTime=Math.min(pendingResume,AE.duration)}catch(e){}pendingResume=0}
+});
+onAE('ended',e=>{
+ if(e.target!==AE)return;
+ if(queue[qi]&&rep===2){AE.currentTime=0;AE.play().catch(()=>{});return}
+ next(true);
+});
+
+/* ---------- KALDIĞIN YERDEN DEVAM ---------- */
+function saveLast(){
+  if(!queue[qi])return;
+  try{store.set('last',{id:queue[qi].id,pos:AE.currentTime||0,t:Date.now()})}catch(e){}
+}
+setInterval(()=>{if(!AE.paused)saveLast()},5000);
+window.addEventListener('beforeunload',saveLast);
+
+/* ---------- ARKA PLAN OYNATMA + BİLDİRİM + KULAKLIK (MediaSession) ---------- */
+function updateMediaSession(tr){
+  if(!tr)return;
+  /* Standart tarayıcı MediaSession (Chrome/Safari) */
+  try{
+    if('mediaSession' in navigator){
+      const base={title:tr.title,artist:tr.artist,album:'NOX — Senin gecen. Senin sesin.'};
+      if(tr.art&&tr.art.indexOf('data:')===0){
+        fetch(tr.art).then(r=>r.blob()).then(b=>{
+          try{navigator.mediaSession.metadata=new MediaMetadata(Object.assign(base,{artwork:[{src:URL.createObjectURL(b),sizes:'300x300',type:'image/jpeg'}]}))}catch(e){}
+        }).catch(()=>{try{navigator.mediaSession.metadata=new MediaMetadata(base)}catch(e){}});
+      }else{
+        navigator.mediaSession.metadata=new MediaMetadata(Object.assign(base,{artwork:tr.art?[{src:tr.art,sizes:'512x512',type:'image/jpeg'}]:[]}));
+      }
+    }
+  }catch(e){}
+  /* WebToApk / AppMint köprüsü (APK bildirimi) — sıralı parametre, HTTPS kapak */
+  const artHttp0=(tr.art&&tr.art.indexOf('https:')===0)?tr.art:'';
+  try{
+    if(window.WebToApk&&typeof WebToApk.setMediaMetadata==='function'){
+      WebToApk.setMediaMetadata(tr.title,tr.artist,artHttp0);
+    }
+  }catch(e){}
+  try{
+    if(window.AppMint&&typeof AppMint.setMediaMetadata==='function'){
+      AppMint.setMediaMetadata(tr.title,tr.artist,artHttp0);
+    }
+  }catch(e){}
+}
+/* Bildirim/kulaklık tuşu geri çağrıları (varsa) */
+(function(){
+  function wire(obj){
+    if(!obj)return;
+    try{
+      if(typeof obj.onMediaButton==='function'||'onMediaButton' in obj){
+        obj.onMediaButton=function(a){
+          if(a==='play')AE.play().catch(()=>{});
+          else if(a==='pause')AE.pause();
+          else if(a==='next')next(false);
+          else if(a==='prev')prev();
+          else if(a==='previous')prev();
+        };
+      }
+    }catch(e){}
+    try{
+      if(typeof obj.setMediaActionHandler==='function'){
+        obj.setMediaActionHandler('play',()=>AE.play().catch(()=>{}));
+        obj.setMediaActionHandler('pause',()=>AE.pause());
+        obj.setMediaActionHandler('next',()=>next(false));
+        obj.setMediaActionHandler('prev',()=>prev());
+      }
+    }catch(e){}
+  }
+  wire(window.WebToApk);wire(window.AppMint);
+  setTimeout(()=>{wire(window.WebToApk);wire(window.AppMint)},1500);
+})();
+/* AppMint medya bildirimi buton geri çağrısı (kılavuz: window.WebToApkOnMediaAction) */
+try{
+  window.WebToApkOnMediaAction=function(action){
+    try{
+      if(action==='play')AE.play().catch(()=>{});
+      else if(action==='pause')AE.pause();
+      else if(action==='next')next(false);
+      else if(action==='prev')prev();
+      else if(action==='stop'){AE.pause();try{AE.currentTime=0}catch(e){}}
+    }catch(e){}
+  };
+}catch(e){}
+if('mediaSession' in navigator){
+  try{
+    navigator.mediaSession.setActionHandler('play',()=>AE.play().catch(()=>{}));
+    navigator.mediaSession.setActionHandler('pause',()=>AE.pause());
+    navigator.mediaSession.setActionHandler('previoustrack',()=>prev());
+    navigator.mediaSession.setActionHandler('nexttrack',()=>next(false));
+  }catch(e){}
+}
+
+function next(auto){
+ if(!queue.length)return;
+ let n;
+ if(shuf&&queue.length>1){n=Math.floor(Math.random()*queue.length);if(n===qi)n=(n+1)%queue.length}
+ else{n=qi+1;if(n>=queue.length)n=0}
+ startStream(queue[n],true);qi=n;syncPlayer();refreshAll();
+}
+function prev(){if(AE.currentTime>3){AE.currentTime=0;return}if(!queue.length)return;
+ const n=(qi-1+queue.length)%queue.length;startStream(queue[n],true);qi=n;syncPlayer();refreshAll();}
+
+$('m-play').onclick=e=>{e.stopPropagation();togglePlay()};
+$('f-play').onclick=togglePlay;
+function togglePlay(){
+ if(!queue.length){const t=musicTracks();if(t.length){playQueue(t,0);return}
+   switchTab('lib');toast('Önce müzik ekle — Kütüphane');return}
+ if(AE.paused)AE.play().catch(()=>toast('Oynatılamadı'));else AE.pause();
+}
+$('hero-play').onclick=()=>{const hm=homeList();if(hm.list.length)playQueue(hm.list,0);else toast('Listende parça yok — Kütüphane\'den ekle')};
+$('mini').onclick=()=>openSheet('fp');
+$('fp-x').onclick=()=>closeSheet('fp');
+$('f-next').onclick=()=>next(false);
+$('f-prev').onclick=prev;
+$('f-shuf').onclick=e=>{shuf=!shuf;e.currentTarget.classList.toggle('on',shuf);toast(shuf?'Karıştır açık':'Karıştır kapalı')};
+$('f-rep').onclick=e=>{rep=(rep+1)%3;e.currentTarget.classList.toggle('on',rep>0);$('rep1').style.display=rep===2?'flex':'none';
+ toast(rep===2?'Tek parça tekrarı':rep===1?'Liste tekrarı':'Tekrar kapalı')};
+$('f-like').onclick=()=>{if(queue[qi])toggleLike(queue[qi].id)};
+$('f-addq').onclick=()=>{if(queue[qi]){queue.push(queue[qi]);toast('Kuyruğa eklendi')}};
+$('f-share').onclick=()=>{
+  const tr=queue[qi];if(!tr)return;
+  const data={title:tr.title,text:tr.title+' — '+tr.artist+' · NOX ile dinle',url:tr.url};
+  if(navigator.share){navigator.share(data).catch(()=>{})}
+  else if(navigator.clipboard){navigator.clipboard.writeText(tr.url).then(()=>toast('Bağlantı kopyalandı — istediğin yerde paylaş')).catch(()=>toast(tr.url))}
+  else toast(tr.url);
+};
+$('f-bar').onclick=e=>{const tr=queue[qi];if(tr&&tr.live){toast('Canlı yayın — sarma yok');return}
+ const r=e.currentTarget.getBoundingClientRect();if(AE.duration)AE.currentTime=(e.clientX-r.left)/r.width*AE.duration};
+
+/* PARMAK KAYDIRMA: canlıda kanal değiştirir, kayıtta sarar */
+(function(){
+ const art=$('f-cover');let sx=null,sy=null;
+ const start=x=>{sx=x};
+ art.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+ art.addEventListener('touchmove',e=>{
+   if(sx===null)return;
+   const dx=e.touches[0].clientX-sx,dy=e.touches[0].clientY-(sy||0);
+   if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.5){/* yatay hareket yakalandı */}
+ },{passive:true});
+ art.addEventListener('touchend',e=>{
+   if(sx===null)return;
+   const dx=e.changedTouches[0].clientX-sx;
+   const dy=Math.abs(e.changedTouches[0].clientY-(sy||0));
+   sx=null;sy=null;
+   if(Math.abs(dx)<60||dy>Math.abs(dx))return;
+   if(dx<0){next(false);toast('Sonraki parça')}else{prev();toast('Önceki parça')}
+ },{passive:true});
+ /* masaüstü: sürükleme */
+ let md=false,mx=0;
+ art.addEventListener('mousedown',e=>{md=true;mx=e.clientX});
+ window.addEventListener('mouseup',e=>{
+   if(!md)return;md=false;
+   const dx=e.clientX-mx;if(Math.abs(dx)<60)return;
+   dx<0?next(false):prev();toast(dx<0?'Sonraki parça':'Önceki parça');
+ });
+})();
+
+/* like */
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-like]');if(!b)return;e.stopPropagation();
+ toggleLike(b.dataset.like);
+ if(b.classList.contains('on')){b.classList.remove('burst');void b.offsetWidth;b.classList.add('burst')}
+});
+function toggleLike(id){
+ if(likes.has(id)){likes.delete(id)}else{likes.add(id);toast('Beğenilere eklendi')}
+ store.set('likes',[...likes]);refreshAll();
+ if(queue[qi])$('f-like').classList.toggle('on',likes.has(queue[qi].id));
+}
+
+/* ---------- NOX SOUND ENGINE — GERÇEK (Web Audio grafik) ----------
+   Cihaz dosyaları: bas (lowshelf) + tiz (highshelf) + 5 bant EQ + yankı (convolver)
+   Akışlar (radyo/link): tarayıcı güvenlik kuralı (CORS) nedeniyle grafikten geçemez,
+   düz kanalda çalar. Motor yalnızca cihaz dosyalarına uygulanır. */
+let ENG=store.get('eng',{b:0,t:0,scene:'Kapalı',eq:'Düz'});
+function makeImpulse(dur,dec){
+  const rate=AC.sampleRate,len=Math.floor(rate*dur),buf=AC.createBuffer(2,len,rate);
+  for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);
+    for(let i=0;i<len;i++){d[i]=(Math.random()*2-1)*Math.pow(1-i/len,dec)}}
+  return buf;
+}
+function ensureGraph(){
+  if(AC)return;
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    const src=AC.createMediaElementSource(audio2);
+    const inG=AC.createGain(),outG=AC.createGain();
+    const dry=AC.createGain(),wet=AC.createGain();wet.gain.value=0;
+    const conv=AC.createConvolver();conv.buffer=makeImpulse(2.4,2.6);
+    const bass=AC.createBiquadFilter();bass.type='lowshelf';bass.frequency.value=150;
+    const treb=AC.createBiquadFilter();treb.type='highshelf';treb.frequency.value=3200;
+    const bands=[60,250,1000,4000,12000].map((f,i)=>{
+      const b=AC.createBiquadFilter();
+      b.type=i===0?'lowshelf':(i===4?'highshelf':'peaking');
+      b.frequency.value=f;if(b.Q)b.Q.value=1.1;b.gain.value=0;return b});
+    src.connect(inG);
+    let node=inG;
+    bands.forEach(b=>{node.connect(b);node=b});
+    node.connect(bass);bass.connect(treb);
+    treb.connect(dry);dry.connect(outG);
+    treb.connect(conv);conv.connect(wet);wet.connect(outG);
+    outG.connect(AC.destination);
+    GEQ={bass,treb,conv,dry,wet,bands};
+    applyEngine();
+  }catch(e){}
+}
+function applyEngine(){
+  if(!GEQ)return;
+  try{
+    if(AC.state==='suspended')AC.resume();
+    GEQ.bass.gain.value=ENG.b*3;              // −30dB … +30dB
+    GEQ.treb.gain.value=ENG.t*3;
+    GEQ.wet.gain.value={'Kapalı':0,'Geniş Sahne':0.22,'Oda':0.42,'Konser':0.62}[ENG.scene]||0;
+    const eqMap={'Düz':[0,0,0,0,0],'Gece':[2,1,0,-1,2],'Bas':[7,5,1,-1,-2],'Vokal':[-3,-2,3,4,2]}[ENG.eq]||[0,0,0,0,0];
+    GEQ.bands.forEach((b,i)=>b.gain.value=eqMap[i]);
+    store.set('eng',ENG);
+  }catch(e){}
+}
+/* Motor arayüzünü kalıcı ayarlarla senkronla */
+$('bass').value=ENG.b;$('bass-v').textContent=ENG.b;
+$('treble').value=ENG.t;$('treble-v').textContent=ENG.t;
+document.querySelectorAll('#stage-row .preset').forEach(p=>p.classList.toggle('on',p.textContent===ENG.scene));
+document.querySelectorAll('#eq-row .preset').forEach(p=>p.classList.toggle('on',p.textContent===ENG.eq));
+$('bass').addEventListener('input',()=>{ENG.b=+$('bass').value;$('bass-v').textContent=ENG.b;applyEngine()});
+$('treble').addEventListener('input',()=>{ENG.t=+$('treble').value;$('treble-v').textContent=ENG.t;applyEngine()});
+
+/* ---------- AYARLAR ---------- */
+function cfLabel(){$('cf-val').textContent=crossfade===0?'Kapalı':crossfade+' sn geçiş';
+ document.querySelectorAll('#cf-row .preset').forEach(p=>p.classList.toggle('on',+p.dataset.s===crossfade))}
+cfLabel();
+$('cf-card').onclick=()=>openSheet('cf-sheet');
+document.querySelectorAll('#cf-row .preset').forEach(p=>p.onclick=()=>{
+ crossfade=+p.dataset.s;store.set('cf',crossfade);cfLabel();closeSheet('cf-sheet');
+ toast(crossfade?'Crossfade: '+crossfade+' sn':'Crossfade kapalı')});
+function apLabel(){$('ap-val').textContent=autoplay?'Açık — seçince hemen çalar':'Kapalı — sadece yükle'}
+apLabel();
+$('ap-card').onclick=()=>{autoplay=!autoplay;store.set('ap',autoplay);apLabel();toast('Otomatik oynatma: '+(autoplay?'açık':'kapalı'))};
+
+/* Önbellek temizleme: gruplar, beğeniler ve bağlantılar KORUNUR —
+   kullanıcı ancak basılı tutarak kalıcı siler */
+$('clear-cache').onclick=()=>{
+ try{
+   Object.keys(localStorage).filter(k=>k.indexOf('nox_')===0)
+     .filter(k=>!['nox_likes','nox_dl','nox_groups','nox_theme','nox_cf','nox_ap','nox_radio_init'].includes(k))
+     .forEach(k=>localStorage.removeItem(k));
+ }catch(e){}
+ toast('Önbellek temizlendi — gruplar ve beğeniler korundu');
+};
+
+/* ---------- GERİ TUŞU (Android) ---------- */
+let overlayStack=[];
+function switchTab(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));$('v-'+v).classList.add('on');
+ document.querySelectorAll('.nv').forEach(b=>b.classList.toggle('on',b.dataset.v===v))}
+function openSheet(id){
+ if($(id).classList.contains('on'))return;
+ $(id).classList.add('on');overlayStack.push(id);
+ try{history.pushState({nox:id},'')}catch(e){}
+}
+function closeSheet(id){
+ const i=overlayStack.lastIndexOf(id);
+ if(i>-1&&i===overlayStack.length-1){
+   /* stack'i burada boşaltma — popstate tek kaynak olsun, tek dokunuş yeterli */
+   try{history.back()}catch(e){overlayStack.pop();$(id).classList.remove('on')}
+ } else {$(id).classList.remove('on');overlayStack=overlayStack.filter(x=>x!==id)}
+}
+window.addEventListener('popstate',()=>{
+ const id=overlayStack.pop();
+ if(id){
+   if(id==='v-group')switchTab('lib');
+   else $(id).classList.remove('on');
+ }else{
+   try{history.pushState({nox:'root'},'')}catch(e){}
+ }
+});
+try{history.pushState({nox:'root'},'')}catch(e){}
+
+/* ---------- SHEETS / MISC ---------- */
+function openEngine(){openSheet('engine')}
+/* Sheet'leri aşağı kaydırarak kapat (buton/slider kaydırması karışmaz) */
+document.querySelectorAll('.sheet').forEach(sh=>{
+ const body=sh.querySelector('.sheet-body');if(!body)return;
+ let sy=null;
+ body.addEventListener('touchstart',e=>{
+   if(e.target.closest('input,button')){sy=null;return}
+   sy=e.touches[0].clientY;
+ },{passive:true});
+ body.addEventListener('touchend',e=>{
+   if(sy===null)return;
+   const dy=e.changedTouches[0].clientY-sy;sy=null;
+   if(dy>110)closeSheet(sh.id);
+ },{passive:true});
+});
+document.querySelectorAll('.preset-row').forEach(row=>row.onclick=e=>{
+ if(!e.target.classList.contains('preset')||row.id==='cf-row')return;
+ row.querySelectorAll('.preset').forEach(x=>x.classList.remove('on'));e.target.classList.add('on');
+ if(row.id==='eq-row'){
+   ENG.eq=e.target.textContent;
+   const map={'Düz':[0,0],'Gece':[2,1],'Bas':[7,5],'Vokal':[-3,-2]}[ENG.eq]||[0,0];
+   ENG.b=map[0];ENG.t=map[1];
+   $('bass').value=ENG.b;$('treble').value=ENG.t;$('bass-v').textContent=ENG.b;$('treble-v').textContent=ENG.t;
+   applyEngine();
+ }
+ if(row.id==='stage-row'){ENG.scene=e.target.textContent;applyEngine()}
+});
+
+/* ---------- YEDEKLEME ---------- */
+function collectData(){const d={};try{Object.keys(localStorage).filter(k=>k.indexOf('nox_')===0).forEach(k=>d[k]=localStorage.getItem(k))}catch(e){}return d}
+function downloadJSON(obj,fname){
+  const blob=new Blob([JSON.stringify(obj)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function fileToDataURL(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f)})}
+$('bk-card').onclick=()=>openSheet('bk-sheet');
+$('bk-meta').onclick=()=>{downloadJSON({v:2,data:collectData()},'nox-yedek.json');closeSheet('bk-sheet');toast('Yedek indirildi')};
+$('bk-full').onclick=async()=>{
+  toast('Müzikler paketleniyor, lütfen bekle…');
+  const files=[];try{const recs=await idb.all();
+    for(const r of recs){files.push({id:r.id,name:r.name,data:await fileToDataURL(r.file)})}
+  }catch(e){}
+  downloadJSON({v:2,data:collectData(),files},'nox-yedek-tam.json');
+  closeSheet('bk-sheet');toast('Tam yedek indirildi ('+files.length+' müzik)');
+};
+$('rs-card').onclick=()=>$('rs-in').click();
+$('rs-in').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;e.target.value='';
+  try{
+    const j=JSON.parse(await f.text());
+    const data=j.data||{};
+    Object.keys(data).forEach(k=>localStorage.setItem(k,data[k]));
+    if(j.files&&j.files.length){
+      for(const fl of j.files){
+        try{const blob=await (await fetch(fl.data)).blob();
+          await idb.put({id:fl.id,name:fl.name,file:new File([blob],fl.name,{type:blob.type})});
+        }catch(err){}
+      }
+    }
+    toast('Yedek geri yüklendi — yeniden başlatılıyor');
+    setTimeout(()=>location.reload(),1200);
+  }catch(err){toast('Yedek dosyası okunamadı')}
+};
+
+/* ---------- DENEYİM AYARLARI ---------- */
+function animLabel(){const on=store.get('anim',true);$('anim-val').textContent=on?'Açık':'Kapalı';
+  document.documentElement.classList.toggle('noanim',!on)}
+animLabel();
+$('anim-card').onclick=()=>{store.set('anim',!store.get('anim',true));animLabel();toast('Animasyonlar: '+$('anim-val').textContent)};
+function dimCheck(){const on=store.get('dim',true);const hr=new Date().getHours();
+  const night=hr>=23||hr<7;$('dim').style.opacity=(on&&night)?0.38:0}
+function dimLabel(){$('dim-val').textContent=store.get('dim',true)?'23:00–07:00 arası ekranı kısar':'Kapalı';dimCheck()}
+dimLabel();setInterval(dimCheck,60000);
+$('dim-card').onclick=()=>{store.set('dim',!store.get('dim',true));dimLabel();toast('Gece loşluğu: '+$('dim-val').textContent)};
+let wipeArm=0;
+$('wipe-card').onclick=()=>{
+  if(Date.now()-wipeArm<3000){wipeArm=0;
+    try{Object.keys(localStorage).filter(k=>k.indexOf('nox_')===0).forEach(k=>localStorage.removeItem(k))}catch(e){}
+    idb.clear().finally(()=>location.reload());
+    return;
+  }
+  wipeArm=Date.now();
+  $('wipe-val').textContent='Emin misin? Silmek için 3 sn içinde tekrar dokun';
+  toast('Onaylamak için tekrar dokun');
+  setTimeout(()=>{if(Date.now()-wipeArm>=2900){$('wipe-val').textContent='Beğeniler, gruplar, dosyalar — geri dönüş yok'}},3100);
+};
+
+$('nav').onclick=e=>{const b=e.target.closest('.nv');if(b)switchTab(b.dataset.v)};
+let toastT=null;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2200)}
+function skipSplash(){$('splash').classList.add('gone')}
+setTimeout(skipSplash,2000);
+
+/* Kalıcı dosyaları geri yükle → kaldığın yerden devam → ilk render */
+(async function(){
+  try{
+    const recs=await idb.all();
+    recs.forEach(r=>{try{
+      localFiles.push({id:r.id,title:r.name.replace(/\.[^.]+$/,''),artist:'Yerli dosya',url:URL.createObjectURL(r.file)});
+    }catch(e){}});
+  }catch(e){}
+  /* gruplardaki ölü referansları temizle */
+  groups.forEach(g=>{g.items=g.items.filter(id=>byId(id))});
+  store.set('groups',groups);
+
+  const last=store.get('last',null);
+  if(last){
+    const tr=byId(last.id);
+    if(tr){
+      queue=[tr];qi=0;
+      pendingResume=(!tr.live&&last.pos>3)?last.pos:0;
+      AE=(tr.src==='local')?audio2:audio;
+      if(tr.src==='local')ensureGraph();
+      AE.src=tr.url;
+      syncPlayer();
+      $('m-artist').textContent=(pendingResume?'Kaldığın yerden · ':'Son dinlenen · ')+tr.artist;
+    }
+  }
+  refreshAll();
+  updPlayIcon();
+})();
+</script>
+</body>
+</html>
